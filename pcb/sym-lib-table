@@ -1,0 +1,7 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "ESP32-DEVKIT-V1")(type "KiCad")(uri "${KIPRJMOD}/lib/ESP32-DEVKIT-V1.pretty/ESP32-DEVKIT-V1.kicad_sym")(options "")(descr ""))
+  (lib (name "MAX98357A")(type "KiCad")(uri "${KIPRJMOD}/lib/MAX98357A.pretty/MAX98357A.kicad_sym")(options "")(descr ""))
+  (lib (name "SDCardAdapter")(type "KiCad")(uri "${KIPRJMOD}/lib/SDCardAdapter.pretty/SDCardAdapter.kicad_sym")(options "")(descr ""))
+  (lib (name "SK6812SIDE")(type "KiCad")(uri "${KIPRJMOD}/lib/SK6812SIDE.pretty/SK6812SIDE.kicad_sym")(options "")(descr ""))
+)
