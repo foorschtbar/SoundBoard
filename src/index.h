@@ -3,7 +3,7 @@
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
-  <title>ESP32-HUB75</title>
+  <title>SoundBoard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
   html {
@@ -30,7 +30,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     top: 0;
     height: 75px;
   }
-  #status_status {
+  #json_status {
     font-size: 1rem;
     color: #fff;
   }
@@ -193,50 +193,41 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   }
 </style>
-<title>ESP Web Server</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; height=&quot;1em&quot; viewBox=&quot;0 0 512 512&quot;><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d=&quot;M96 256H128V512H0V352H32V320H64V288H96V256zM512 352V512H384V256H416V288H448V320H480V352H512zM320 64H352V448H320V416H192V448H160V64H192V32H224V0H288V32H320V64zM288 128H224V192H288V128z&quot;/></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pjxzdmcgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMS4xIDM2Ny4xYzAgNDQuMTgtNDIuOTggODAtOTUuMSA4MHMtOTUuMS0zNS44Mi05NS4xLTc5LjFjMC00NC4xOCA0Mi45OC03OS4xIDk1LjEtNzkuMWMxMS4yOCAwIDIxLjk1IDEuOTIgMzIuMDEgNC44OThWMTQ4LjFMMTkyIDIyNGwtLjAwMjMgMjA4LjFDMTkxLjEgNDc2LjIgMTQ5IDUxMiA5NS4xIDUxMlMwIDQ3Ni4yIDAgNDMyYzAtNDQuMTggNDIuOTgtNzkuMSA5NS4xLTc5LjFjMTEuMjggMCAyMS45NSAxLjkyIDMyIDQuODk4VjEyNi41YzAtMTIuOTcgMTAuMDYtMjYuNjMgMjIuNDEtMzAuNTJsMzE5LjEtOTQuNDlDNDcyLjEgLjY2MTUgNDc3LjMgMCA0ODAgMGMxNy42NiAwIDMxLjk3IDE0LjM0IDMyIDMxLjk5TDUxMS4xIDM2Ny4xeiIvPjwvc3ZnPg==">
 </head>
 <body>
   <div class="topnav">
-    <h1>ESP32-HUB75 (<span id="status_hostname_header"></span>)</h1>
-     <div><svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><style>svg{fill:#ffffff}</style><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"></path></svg><span id="status_status"></span></div>
+    <h1>SoundBoard WebUI (<span id="json_hostname_header"></span>)</h1>
+     <div><svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><style>svg{fill:#ffffff}</style><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"></path></svg><span id="json_status"></span></div>
   </div>
   <div class="content">
    <div class="card">
       <h2>System</h2>
-      <div id="status_sysinfo"></div>
-    </div>
-     <div class="card">
-      <h2>Brightness</h2>
-      <input type="range" id="status_brightness" min="0" max="255" step="5" value="0" oninput="sliderChange()">
+      <div id="json_sysinfo"></div>
     </div>
     <div class="card">
-      <h2>Test Screens</h2>
-      <p><button id="screenTest" class="button" data-type="screen">Boot</button><button id="screenColorTest" class="button" data-type="screen">Color Test</button><button id="screenColorRed" class="button" data-type="screen">Red</button><button id="screenColorGreen" class="button" data-type="screen">Green</button><button id="screenColorBlue" class="button" data-type="screen">Blue</button><button id="screenColorWhite" class="button" data-type="screen">White</button><button id="screenColorBlack" class="button" data-type="screen">Black</button></p>
+      <h2>Volume</h2>
+      <input type="range" id="json_cur_volume" name="volume" min="0" max="21" step="1" value="0">
+      <h2>Balance</h2>
+      <input type="range" id="json_cur_balance" name="balance" min="-16" max="16" step="1" value="0">
     </div>
-    <!--<div class="card">
-      <h2>GIFs</h2>
-      <div id="status_gifs"></div>
-    </div>-->
     <div class="card">
-      <h2>Filesystem</h2>
-      <p><div id="status_fs_info"></div></p>
-      <p><div id="status_fs"></div></p>
+      <h2>Filesystem (external)</h2>
+      <p><div id="json_fs_info"></div></p>
+      <div id="json_fs"></div>
       <p>
         <form method="POST" action="/upload" enctype="multipart/form-data">
           <input type="file" name="data" id="fileupload" required/>
-          <input type="button" class="button" value="Upload GIF" onclick="document.getElementById('fileupload').click();" />
+          <input type="button" class="button" value="Upload" onclick="document.getElementById('fileupload').click();" />
           <input type="submit" class="button" name="upload" value="Upload" style="display:none;" title="Upload File">
-          <input type="button" class="button showLoader" value="Save settings" data-type="fssave" />
-          <input type="button" class="button" value="Start playlist" data-type="playlist" />
         </form>
       </p>
     </div>
     <div class="card">
       <h2>Maintenance</h2>
-      <p><button id="reboot" class="button confirm showLoader" data-type="cmd">Reboot</button></p>
-      <p><button id="format" class="button confirm showLoader" data-type="cmd">Format</button></p>
+      <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reboot">Reboot</button></p>
+      <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
       <p>
         <form method='POST' action='/update' enctype='multipart/form-data'>
           <input type='file' name='update' id='fwupdate' required>
@@ -248,342 +239,296 @@ const char index_html[] PROGMEM = R"rawliteral(
     <div class="card">
       <h2>Settings</h2>
       <form id="settings">
-      <p><label for="ssid">SSID</label><input type='text' name='ssid' id="status_ssid" autocomplete='off' placeholder='SSID'></p>
-      <p><label for="psk">PSK</label><input type='password' name='psk' id="status_psk" autocomplete='off' placeholder='PSK'></p>
-      <p><label for="hostname">Hostname</label><input type='text' name='hostname' id="status_hostname" autocomplete='off' placeholder='Hostname' ></p>
-      <p><label for="min_gif_time">Min. GIF playback time</label><input type='text' name='min_gif_time' id="status_min_gif_time" autocomplete='off' placeholder='Min. GIF playback time'></p>
-      <p><label for="min_gif_time">Autoplay delay</label><input type='text' name='autoplay_delay' id="status_autoplay_delay" autocomplete='off' placeholder='Autoplay delay'></p>
-      <p><input type="button" data-type="settingssave" class="button confirm showLoader" value='Save and Reboot'></p>
+      <p><label for="ssid">SSID</label><input type='text' name='ssid' id="json_ssid" autocomplete='off' placeholder='SSID'></p>
+      <p><label for="psk">PSK</label><input type='password' name='psk' id="json_psk" autocomplete='off' placeholder='PSK'></p>
+      <p><label for="hostname">Hostname</label><input type='text' name='hostname' id="json_hostname" autocomplete='off' placeholder='Hostname' ></p>
+      <p><label for="volume">Start volume</label><input type='text' name='volume' id="json_start_volume" autocomplete='off' placeholder='Start volume'></p>
+      <p><label for="balance">Start balance</label><input type='text' name='balance' id="json_start_balance" autocomplete='off' placeholder='Start balance'></p>
+      <p><input type="button" data-cmd="settingssave" class="button confirm showLoader" value='Save and Reboot'></p>
       </form>
     </div>
   </div>
   <div id="overlay" class="overlay"></div>
   <div id="loader" class="loader"><div class="lds-ring"><div></div><div></div><div></div><div></div></div><div id="loader_msg">Loading...</div></div>
 <script>
-  var gateway = `ws://${window.location.hostname}/ws`;
-  var websocket;
-  var noReconnect = false;
+const gateway = `ws://${window.location.hostname}/ws`;
+let websocket;
+const noReconnect = false;
 
-  document.addEventListener("DOMContentLoaded", function () {
-    initWebSocket();
-    initButtons();
-    initPostHook();
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  initWebSocket();
+  initButtons();
+  initPostHook();
+});
 
-  function initWebSocket() {
-    console.log('Trying to open a WebSocket connection...');
-    websocket = new WebSocket(gateway);
-    websocket.onopen    = onOpen;
-    websocket.onclose   = onClose;
-    websocket.onmessage = onMessage;
+function initWebSocket() {
+  console.log('Trying to open a WebSocket connection...');
+  websocket = new WebSocket(gateway);
+  websocket.onopen = onOpen;
+  websocket.onclose = onClose;
+  websocket.onmessage = onMessage;
+}
+function onOpen(event) {
+  console.log('Connection opened');
+  getData();
+}
+function onClose(event) {
+  console.log('Connection closed');
+  if (!noReconnect) {
+    setTimeout(initWebSocket, 5000);
   }
-  function onOpen(event) {
-    console.log('Connection opened');
-    getData();
+}
+function onMessage(event) {
+  const response = JSON.parse(event.data);
+  if (processResponse(response)) {
+    hideLoader();
   }
-  function onClose(event) {
-    console.log('Connection closed');
-    if(!noReconnect) {
-      timer = setTimeout(initWebSocket, 5000);
-    }
-  }
-  function onMessage(event) {
-    try {
-      var response = JSON.parse(event.data);
-      if(processResponse(response)) {
-        hideLoader()
-      }
-    } catch (error) {
-      console.log("Error processing message: ", error.message);
-    }
+}
 
-  }
-
-  function initButtons() {
-    btns = document.getElementsByClassName("card");
-    for (var i = 0; i < btns.length; i++) {
-        btns[i].addEventListener("click", function (event) {
-          if (event.target.classList.contains('button')) {
-            // console.log(event)
-            var type = event.target.getAttribute("data-type")
-            var data = event.target.id
-            var dosend = true
-            if(event.target.classList.contains("confirm")) {
-              dosend = confirm("Are you sure?")
-            }
-            if(dosend) {
-              if(event.target.classList.contains("showLoader")) {
-                showLoader()
-              }
-              switch(type) {
-                case "playlist":
-                  var playlist = []
-                  var checkboxes = document.getElementsByName("cb_playlist")
-                  for (var i = 0; i < checkboxes.length; i++) {
-                    if(checkboxes[i].checked) {
-                      playlist.push(checkboxes[i].value)
-                    }
-                  }
-                  websocket.send('{"cmd": "playlist", "playlist": "' + playlist.join(",") + '"}');
-                break;
-                case "fssave":
-                  var playlist = []
-                  var autoplay = []
-                  var checkboxes = document.getElementsByName("cb_playlist")
-                  for (var i = 0; i < checkboxes.length; i++) {
-                    if(checkboxes[i].checked) {
-                      playlist.push(checkboxes[i].value)
-                    }
-                  }
-                  checkboxes = document.getElementsByName("cb_autoplay")
-                  for (var i = 0; i < checkboxes.length; i++) {
-                    if(checkboxes[i].checked) {
-                      autoplay.push(checkboxes[i].value)
-                    }
-                  }
-                  //console.log(playlist)
-                  //console.log(autoplay)
-                  websocket.send('{"settings":{"playlist": "' + playlist.join(",") + '", "autoplay": "' + autoplay.join(",") + '"}}');
-                break;
-                case "settingssave":
-                  var form = document.getElementById('settings');
-                  var data = {settings: {}, reboot: true};
-                  // Loop through all input elements in the form
-                  for (var i = 0; i < form.elements.length; i++) {
-                    var element = form.elements[i];
-
-                    // Check if the element is an input
-                    if (element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'password')) {
-                      // Add key-value pair to the array
-                      data.settings[element.name] = element.value;
-                    }
-                  }
-
-                  var json = JSON.stringify(data)
-                  console.log(json)
-                  
-                  websocket.send(json);
-                break;
-                default:
-                   websocket.send('{"'+ type +'": "' + data + '"}')
-                break;
-              }
-            }
-          } else if (event.target.type === 'checkbox' && event.target.classList.contains('group')) {
-            var name = event.target.name;
-            var checkboxes = document.querySelectorAll('input[name="'+name+'"]')
-            for (var i = 0; i < checkboxes.length; i++) {
-              if(checkboxes[i] !== event.target) {
-                checkboxes[i].checked = false
-              }
-            }
-          }
-
-        });
-    }
-  }
-
-  function initPostHook() {
-    var elements = document.querySelectorAll("input[type='file']")
-    for (var i = 0; i < elements.length; i++) {
-      elements[i].addEventListener("change", function (event) {
-        const file = event.target.files[0];
-        //console.log(event.target)
-
-        if (!file) {
-          alert("Please select a file to upload.");
-          return;
+function initButtons() {
+  var btns = document.getElementsByClassName('card');
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', (event) => {
+      if (event.target.classList.contains('button')) {
+        // console.log(event)
+        const cmd = event.target.getAttribute('data-cmd');
+        const value = event.target.getAttribute("data-value")
+        let dosend = true;
+        if (event.target.classList.contains('confirm')) {
+          dosend = confirm('Are you sure?');
         }
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", event.target.closest('form').getAttribute("action"), true);
-
-        xhr.upload.onprogress = function (e) {
-          if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            //console.log(`Upload Progress: ${Math.round(percentComplete)}%`);
-            document.getElementById("loader_msg").innerHTML = `Upload Progress: ${Math.round(percentComplete)}%`;
-
-            if(percentComplete >= 100 && event.target.id === "fwupdate") {
-              document.getElementById("loader_msg").innerHTML = "Flashing firmware...";
-            }
+        if (dosend) {
+          if (event.target.classList.contains('showLoader')) {
+            showLoader();
           }
-        };
+          switch (cmd) {
+            case 'settingssave':
+              var form = document.getElementById('settings');
+              var data = { settings: {}, reboot: true };
+              // Loop through all input elements in the form
+              for (let i = 0; i < form.elements.length; i++) {
+                const element = form.elements[i];
 
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            var jsonResponse = JSON.parse(xhr.responseText);
-            console.log("Upload Complete");
-            if(jsonResponse.hasOwnProperty("success")) {
-              if(jsonResponse.success) {
-                if(jsonResponse.hasOwnProperty("refresh")) {
-                    if(event.target.id === "fwupdate") {
-                      document.getElementById("loader_msg").innerHTML = "Flashing complete, rebooting...";
-                    } else {
-                      document.getElementById("loader_msg").innerHTML = "Upload complete, rebooting...";
-                    }
-
-                    // reload page
-                    setTimeout(function() {
-                      window.location.reload(true);
-                    }, jsonResponse.refresh*1000);
-                } else {
-                  document.getElementById("loader_msg").innerHTML = "Upload complete";
-                  getData();
+                // Check if the element is an input
+                if (element.tagName === 'INPUT' && (element.type === 'text' || element.type === 'password')) {
+                  // Add key-value pair to the array
+                  data.settings[element.name] = element.value;
                 }
+              }
+
+              var json = JSON.stringify(data);
+              console.log(json);
+              websocket.send(json);
+              break;
+            default:
+              websocket.send(`{"${cmd}": "${value}"}`);
+              break;
+          }
+        }
+      } else if (event.target.type === 'checkbox' && event.target.classList.contains('group')) {
+        const { name } = event.target;
+        var checkboxes = document.querySelectorAll(`input[name="${name}"]`);
+        for (var i = 0; i < checkboxes.length; i++) {
+          if (checkboxes[i] !== event.target) {
+            checkboxes[i].checked = false;
+          }
+        }
+      }
+    });
+  }
+
+  var sliders = document.querySelectorAll('input[type="range"]');
+  sliders.forEach((slider) => {
+    slider.addEventListener('input', (event) => {
+      console.log(event.target);
+      const { name, value } = event.target;
+      websocket.send(`{${name}: ${value}}`);
+    });
+  });
+}
+
+function initPostHook() {
+  const elements = document.querySelectorAll("input[type='file']");
+  for (let i = 0; i < elements.length; i++) {
+    elements[i].addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      // console.log(event.target)
+
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', event.target.closest('form').getAttribute('action'), true);
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          // console.log(`Upload Progress: ${Math.round(percentComplete)}%`);
+          document.getElementById('loader_msg').innerHTML = `Upload Progress: ${Math.round(percentComplete)}%`;
+
+          if (percentComplete >= 100 && event.target.id === 'fwupdate') {
+            document.getElementById('loader_msg').innerHTML = 'Flashing firmware...';
+          }
+        }
+      };
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          console.log('Upload Complete');
+          if (response.success !== undefined) {
+            if (response.success) {
+              if (response.refresh !== undefined) {
+                if (event.target.id === 'fwupdate') {
+                  document.getElementById('loader_msg').innerHTML = 'Flashing complete, rebooting...';
+                } else {
+                  document.getElementById('loader_msg').innerHTML = 'Upload complete, rebooting...';
+                }
+
+                // reload page
+                setTimeout(() => {
+                  window.location.reload(true);
+                }, response.refresh * 1000);
               } else {
-                document.getElementById("loader_msg").innerHTML = "Upload failed";
+                document.getElementById('loader_msg').innerHTML = 'Upload complete';
+                getData();
               }
             } else {
-              document.getElementById("loader_msg").innerHTML = "Upload failed";
+              document.getElementById('loader_msg').innerHTML = 'Upload failed';
             }
-          }
-        };
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        showLoader()
-        xhr.send(formData);
-
-        
-      });
-    }
-  }
-
-  function showLoader() {
-    document.getElementById('loader_msg').innerHTML = "Loading..."
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('loader').style.display = 'block';
-  }
-
-  function hideLoader() {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('loader').style.display = 'none';
-  }
-
-  function sliderChange() {
-    websocket.send('{"brightness": "' + document.getElementById("status_brightness").value + '"}');
-  }
-
-  function getData() {
-    showLoader()
-    websocket.send('{"getData": true}')
-  }
-
-  function processResponse(response) {
-    hideloader = true
-    for (var key in response) {
-      if (response.hasOwnProperty(key)) {
-        if(key === "alert") {
-          if(document.getElementById("loader").style.display === "block") {
-            document.getElementById("loader_msg").innerHTML = response[key];
           } else {
-            alert(response[key])
-          }
-          continue;
-        }
-        if(key === "refresh") {
-          if(response[key] > 0) {
-            setTimeout(function() {
-              window.location.reload(true);
-            }, response[key]*1000);
-            hideloader = false
-            break;
+            document.getElementById('loader_msg').innerHTML = 'Upload failed';
           }
         }
-        var elementId = "status_" + key;
-        var element = document.getElementById(elementId);
-        //console.log("Processing " + key, response[key])
-        switch(key) {
-          case "fs":
+      };
 
-            // file list
-            var html = '<div class="table">'
-            for (var i = 0; i < response[key].length; i++) {
-              var isGif = response[key][i].name.toLowerCase().endsWith(".gif")
-              var isAutoplay = response.autoplay.split(",").includes(response[key][i].name)
-              var isPlaylist = response.playlist.split(",").includes(response[key][i].name)
-              if(i == 0) {
-                html += '<div>';
-                html += '<div>Name</div>';
-                html += '<div>Boot</div>';
-                html += '<div>List</div>';
-                html += '<div>Size</div>';
-                html += '<div>Actions</div>';
-                html += '</div>';
-              }
-              html += '<div>';
-              html += '<div>' + response[key][i].name + '</div>';
-               if(isGif) {
-                html += '<div><input type="checkbox" name="cb_autoplay" '+ (isAutoplay ? "checked" : "")+' value="'+response[key][i].name+'"></div>';
-                html += '<div><input type="checkbox" name="cb_playlist" '+ (isPlaylist ? "checked" : "")+' value="'+response[key][i].name+'"></div>';
-                
-              } else {
-                html += '<div></div>';
-                html += '<div></div>';
-              }
-              html += '<div>' + formatBytes(response[key][i].size) + '</div>';
-              html += '<div>';
-              if(isGif) {
-                html += '<button id="' + response[key][i].name + '" class="button small" data-type="gif">Play</button>';
-              }
-              html += '<button id="' + response[key][i].name + '" class="button small red confirm showLoader" data-type="delete">Delete</button>';
-              html += '</div>';
-              html += '</div>';
-            }
-            html += "</div>"
-            element.innerHTML = html
-            break;
+      const formData = new FormData();
+      formData.append('file', file);
 
-          case "sysinfo":
-            var html = '<div class="table">'
-            for (var entry in response[key]) {
-              value = response[key][entry]
-              switch(entry) {
-                case "Free Heap":
-                case "Free PSRAM":
-                case "Flash Chip Size":
-                  value = formatBytes(value)
-                  break;
-                  case "CPU Freq.":
-                    value = value + " MHz"
-                    break;
-              }
-              html += '<div>';
-               html += '<div>' + entry + '</div>';
-              html += '<div>' + value + '</div>';
-              html += '</div>';
-            }
-            html += "</div>"
-            element.innerHTML = html
-          break;
-          default:
-            if (element) {
-              if (element.tagName === "DIV" || element.tagName === "SPAN") {
-                element.innerText = response[key];
-              } else if (element.tagName === "INPUT") {
-                element.value = response[key];
-              }
-            }
+      showLoader();
+      xhr.send(formData);
+    });
+  }
+}
+
+function showLoader() {
+  document.getElementById('loader_msg').innerHTML = 'Loading...';
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('loader').style.display = 'block';
+}
+
+function hideLoader() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('loader').style.display = 'none';
+}
+
+function getData() {
+  showLoader();
+  websocket.send('{"getData": true}');
+}
+
+function processResponse(response) {
+  var hideloader = true;
+  var html = '';
+  for (const key in response) {
+    if (response.hasOwnProperty(key)) {
+      if (key === 'alert') {
+        if (document.getElementById('loader').style.display === 'block') {
+          document.getElementById('loader_msg').innerHTML = response[key];
+        } else {
+          alert(response[key]);
+        }
+        continue;
+      }
+      if (key === 'refresh') {
+        if (response[key] > 0) {
+          setTimeout(() => {
+            window.location.reload(true);
+          }, response[key] * 1000);
+          hideloader = false;
           break;
         }
       }
+      const elementId = `json_${key}`;
+      const element = document.getElementById(elementId);
+      // console.log("Processing " + key, response[key])
+      switch (key) {
+        case 'fs':
+
+          // file list
+          html = '<div class="table">';
+          for (let i = 0; i < response[key].length; i++) {
+            if (i == 0) {
+              html += '<div>';
+              html += '<div>Name</div>';
+              html += '<div>Size</div>';
+              html += '<div>Actions</div>';
+              html += '</div>';
+            }
+            html += '<div>';
+            html += `<div>${response[key][i].name}</div>`;
+            html += `<div>${formatBytes(response[key][i].size)}</div>`;
+            html += '<div>';
+            html += `<button class="button small" data-cmd="play" data-value="${response[key][i].name}">Play</button>`;
+            html += `<button class="button small red confirm showLoader" data-cmd="delete" data-value="${response[key][i].name}">Delete</button>`;
+            html += '</div>';
+            html += '</div>';
+          }
+          html += '</div>';
+          element.innerHTML = html;
+          break;
+
+        case 'sysinfo':
+          html = '<div class="table">';
+          for (const entry in response[key]) {
+            var value = response[key][entry];
+            switch (entry) {
+              case 'Free Heap':
+              case 'Free PSRAM':
+              case 'Flash Chip Size':
+                value = formatBytes(value);
+                break;
+              case 'CPU Freq.':
+                value = `${value} MHz`;
+                break;
+            }
+            html += '<div>';
+            html += `<div>${entry}</div>`;
+            html += `<div>${value}</div>`;
+            html += '</div>';
+          }
+          html += '</div>';
+          element.innerHTML = html;
+          break;
+        default:
+          if (element) {
+            if (element.tagName === 'DIV' || element.tagName === 'SPAN') {
+              element.innerText = response[key];
+            } else if (element.tagName === 'INPUT') {
+              element.value = response[key];
+            }
+          }
+          break;
+      }
     }
-    return hideloader
   }
+  return hideloader;
+}
 
-  function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) return '0 Bytes';
+function formatBytes(bytes, decimals = 2) {
+  bytes = parseInt(bytes);
 
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  if (bytes === 0) return '0 Bytes';
 
-    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(k)));
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 
-    return Math.ceil(parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))) + ' ' + sizes[i];
-  }
+  const i = (Math.floor(Math.log(bytes) / Math.log(k)));
 
+  return `${Math.ceil(parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)))} ${sizes[i]}`;
+}
 </script>
 </body>
 </html>)rawliteral";
