@@ -2345,10 +2345,6 @@
 		(uuid "579b7a99-069c-41fa-8515-b61c04e85af6")
 	)
 	(no_connect
-		(at 191.77 60.96)
-		(uuid "633e42dc-5cfa-4853-ab1a-f4938f43b35b")
-	)
-	(no_connect
 		(at 140.97 96.52)
 		(uuid "7a5f310d-ac75-44d0-8229-a8e3ee73ccbd")
 	)
@@ -3623,6 +3619,73 @@
 			(project ""
 				(path "/a11f05dd-5082-4e0a-aca6-ddee1418cddd"
 					(reference "U1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+5V")
+		(at 191.77 60.96 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "1e296bba-4f0f-47ef-9060-b8c25e7364fa")
+		(property "Reference" "#PWR016"
+			(at 195.58 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+5V"
+			(at 187.96 60.9599 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 191.77 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 191.77 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+5V\""
+			(at 191.77 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "891a79e1-f753-4c46-a208-f1615d2b34d8")
+		)
+		(instances
+			(project "SoundBoard"
+				(path "/a11f05dd-5082-4e0a-aca6-ddee1418cddd"
+					(reference "#PWR016")
 					(unit 1)
 				)
 			)
