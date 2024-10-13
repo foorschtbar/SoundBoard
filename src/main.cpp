@@ -38,9 +38,10 @@
 // Audioplay
 Audio audio;
 // LED
-SingleLED led(NEOPIXEL, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel neopixel(1, NEOPIXEL, NEO_GRB + NEO_KHZ800);
+SingleLED led(neopixel);
 // LED Ticker
-Ticker ledTimer;
+Ticker ledTicker;
 
 // Webserver
 AsyncWebServer server(80);
@@ -57,6 +58,16 @@ String settings_psk;
 String settings_hostname = DEFAULT_HOSTNAME;
 int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
+
+void showAction()
+{
+  led.saveColor();
+  led.off();
+  ledTicker.attach_ms(100, []() {
+    led.restoreColor();
+    ledTicker.detach();
+  });
+}
 
 void readSettings()
 {
@@ -140,16 +151,19 @@ void writeSettings()
 
 void sendStatus(String status, int refresh = 0)
 {
+  showAction();
   websocket.textAll("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
 }
 
 void sendAlert(String alert, int refresh = 0)
 {
+  showAction();
   websocket.textAll("{\"alert\":\"" + alert + "\", \"refresh\":" + String(refresh) + "}");
 }
 
 void sendData()
 {
+  showAction();
   // Create a JSON document
   StaticJsonDocument<3000> doc;
 
@@ -388,6 +402,7 @@ void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t
 {
   if (!index)
   {
+    showAction();
     logf("Upload started: %s\n", filename.c_str());
     request->_tempFile = SD.open("/" + filename, "w");
   }
@@ -412,6 +427,7 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
   if (!index)
   {
     audio.stopSong();
+    showAction();
     logln("Flashing firmware starting...");
     // if filename includes spiffs, update the spiffs partition
     int cmd = (filename.indexOf("spiffs") > -1) ? U_PART : U_FLASH;
@@ -453,13 +469,24 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
 void handleRoot(AsyncWebServerRequest *request)
 {
   logln(F("Displaying index.html"));
+  showAction();
   request->send(200, "text/html", index_html);
 }
 
 void handleNotFound(AsyncWebServerRequest *request)
 {
-  logln(F("Not found"));
-  request->send(404, "text/plain", "Not found");
+  showAction();
+  // handling pre-flight options like CORS (Cross Origin Resource Sharing)
+  if (request->method() == HTTP_OPTIONS)
+  {
+    logln(F("Handling pre-flight request"));
+    request->send(200);
+  }
+  else
+  {
+    logf("Not found: %s\n", request->url().c_str());
+    request->send(404, "text/plain", "Not found");
+  }
 }
 
 void setupWiFiStation()
@@ -519,7 +546,7 @@ void setup()
 {
   led.begin();
   led.setBrightness(128);
-  led.setColor(255, 0, 0); // Red. Booting...
+  led.setColor(255, 165, 0); // Orange. Booting...
 
   // Power off onboard LED
   pinMode(LED, OUTPUT);
@@ -621,7 +648,6 @@ void setup()
 
   logln(F("Setup done."));
   led.setColor(0, 255, 0); // Green. Ready...
-
 }
 
 void loop()

@@ -1,15 +1,13 @@
-#include "singleled.h"
+#include "SingleLED.h"
 
-SingleLED::SingleLED(int16_t pin, neoPixelType t)
+SingleLED::SingleLED(Adafruit_NeoPixel &pixels)
 {
-    _pixels = Adafruit_NeoPixel(1, pin, t);
+    _pixels = pixels;
 }
 
 void SingleLED::begin()
 {
     _pixels.begin();
-    _pixels.setBrightness(255);
-    _pixels.clear();
 }
 
 void SingleLED::setColor(int r, int g, int b)
@@ -18,13 +16,16 @@ void SingleLED::setColor(int r, int g, int b)
     _pixels.show();
 }
 
-void SingleLED::setColor(int r, int g, int b, int brightness)
+void SingleLED::saveColor()
 {
-    _pixels.setPixelColor(0, r, g, b);
-    _pixels.setBrightness(brightness);
-    _pixels.show();
+    _color = _pixels.getPixelColor(0);
 }
 
+void SingleLED::restoreColor()
+{
+    _pixels.setPixelColor(0, _color);
+    _pixels.show();
+}
 void SingleLED::off()
 {
     _pixels.setPixelColor(0, 0, 0, 0);
@@ -34,6 +35,5 @@ void SingleLED::off()
 void SingleLED::setBrightness(int brightness)
 {
     _pixels.setBrightness(brightness);
-    _pixels.show();
 }
 
