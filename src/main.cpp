@@ -1,8 +1,6 @@
 #include "Arduino.h"
 #include <ArduinoJson.h>
-#include "WiFi.h"
 #include "Audio.h"
-#include <WiFi.h>
 #include "SD.h"
 #include <LittleFS.h>
 #include <AsyncTCP.h>
@@ -10,7 +8,6 @@
 #include <Update.h>
 #include <SPI.h>
 #include <FS.h>
-#include <WiFiClient.h>
 #include "SingleLED.h"
 #include "util.h"
 #include <Ticker.h>
@@ -58,7 +55,7 @@ bool settingsValid = false;
 String settings_ssid;
 String settings_psk;
 String settings_hostname = DEFAULT_HOSTNAME;
-int settings_volume = 5; // 0-21
+int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
 
 void readSettings()
@@ -163,9 +160,12 @@ void sendData()
   doc["start_balance"] = settings_balance;
   doc["cur_balance"] = currentBalance;
   doc["ssid"] = settings_ssid;
-  if(settings_psk.length() > 0) {
+  if (settings_psk.length() > 0)
+  {
     doc["psk"] = WIFI_PSK_HIDDEN;
-  } else {
+  }
+  else
+  {
     doc["psk"] = "";
   }
   doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
@@ -219,7 +219,7 @@ void sendData()
       fileObj["name"] = String(file.name());
       fileObj["size"] = String(file.size());
     }
-    
+
     file = root.openNextFile();
   }
   root.close();
@@ -275,7 +275,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     {
       const char *filename = doc["delete"].as<const char *>();
       sendStatus("Delete " + String(filename));
-      if (SD.remove("/"+String(filename)))
+      if (SD.remove("/" + String(filename)))
       {
         sendStatus("Deleted " + String(filename));
         sendData();
@@ -453,14 +453,13 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
 void handleRoot(AsyncWebServerRequest *request)
 {
   logln(F("Displaying index.html"));
-  digitalWrite(LED, 0);
-  request->send_P(200, "text/html", index_html);
-  digitalWrite(LED, 1);
+  request->send(200, "text/html", index_html);
 }
 
 void handleNotFound(AsyncWebServerRequest *request)
 {
-  request->send(404);
+  logln(F("Not found"));
+  request->send(404, "text/plain", "Not found");
 }
 
 void setupWiFiStation()
@@ -553,7 +552,7 @@ void setup()
   {
     logln(F("Internal filesystem mounted successfully"));
     logf("> %s of %s used (%0.0f%%)\n", formatFileSize(FILESYSTEM.usedBytes()), formatFileSize(FILESYSTEM.totalBytes()), FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0);
-   }
+  }
 
   // Read settings
   readSettings();
@@ -605,8 +604,11 @@ void setup()
   server.onNotFound(handleNotFound);
 
   // Normal Webserver
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
   server.begin();
-  logln(F("HTTP server started"));
+  logln(F("Webserver server started"));
 
   // Websocket Server
   initWebSocket();
@@ -620,13 +622,6 @@ void setup()
   logln(F("Setup done."));
   led.setColor(0, 255, 0); // Green. Ready...
 
-  // audio.connecttoFS(SD, "Olsen-Banden.mp3");
-  // audio.connecttoFS(SD, "stereo-test.mp3");
-  // audio.connecttoFS(SD, "/winxp.mp3");
-  // audio.connecttoFS(SD, "winxpshutdown.mp3");
-  // audio.connecttoFS(SD, "101 - Paul Van Dyk - For An Angel (PVD Remix 09).mp3");
-  // audio.connecttospeech("Mirco hat einen kleinen....KOFFERRAUM!", "de",);
-  // audio.connecttohost("https://stream.sunshine-live.de/2000er/mp3-192/stream.sunshine-live.de/");
 }
 
 void loop()
