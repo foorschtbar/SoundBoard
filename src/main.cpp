@@ -33,7 +33,6 @@
 #define WIFI_AP_PSK "12345678x!"
 #define WIFI_TIMEOUT 1000 * 10 // 10 seconds
 #define WIFI_PSK_HIDDEN "**********"
-#define U_PART U_SPIFFS
 
 // Audioplay
 Audio audio;
@@ -58,15 +57,17 @@ String settings_psk;
 String settings_hostname = DEFAULT_HOSTNAME;
 int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
+// flag to use from web update to reboot the ESP
+bool shouldReboot = false;
 
 void showAction()
 {
   led.saveColor();
   led.off();
-  ledTicker.attach_ms(100, []() {
+  ledTicker.attach_ms(100, []()
+                      {
     led.restoreColor();
-    ledTicker.detach();
-  });
+    ledTicker.detach(); });
 }
 
 void readSettings()
@@ -423,37 +424,35 @@ void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t
 
 void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-
   if (!index)
   {
     audio.stopSong();
     showAction();
     logln("Flashing firmware starting...");
-    // if filename includes spiffs, update the spiffs partition
-    int cmd = (filename.indexOf("spiffs") > -1) ? U_PART : U_FLASH;
-    if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd))
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH))
     {
-      logln("Flashing firmware failed!");
+      logln("> Flashing firmware failed!");
 #ifdef DEBUG
       Update.printError(Serial);
 #endif
     }
   }
 
-  if (Update.write(data, len) != len)
+  if (!Update.hasError())
   {
+    if (Update.write(data, len) != len)
+    {
 #ifdef DEBUG
-    Update.printError(Serial);
+      Update.printError(Serial);
 #endif
+    }
   }
 
   if (final)
   {
-    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{ \"success\": true, \"refresh\": 10}");
-    request->send(response);
     if (!Update.end(true))
     {
-      logln("Flasing firmware failed!");
+      logln("> Flasing firmware failed!");
 #ifdef DEBUG
       Update.printError(Serial);
 #endif
@@ -461,7 +460,9 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
     else
     {
       logln(F("> Flasing firmware complete!"));
-      ESP.restart();
+#ifdef DEBUG
+      Serial.flush();
+#endif
     }
   }
 }
@@ -498,9 +499,11 @@ void setupWiFiStation()
     WiFi.begin(settings_ssid, settings_psk);
 
     unsigned long startTime = millis();
+    bool toggle = false;
 
     while (WiFi.status() != WL_CONNECTED)
     {
+      led.toggleColor(0, 0, 255); // Blue. Connecting...
       if (millis() - startTime >= WIFI_TIMEOUT)
       {
         logln(F("\nWiFi connection timeout, switching to AP mode"));
@@ -510,7 +513,7 @@ void setupWiFiStation()
       {
         log(F("."));
       }
-      delay(100);
+      delay(50);
     }
 
     logln(F("\nConnected to the WiFi network"));
@@ -618,9 +621,12 @@ void setup()
 
   // https://github.com/AR-D-R/ESP32-OTA-File-management/blob/main/OTA_file_management.ino
   server.on(
-      "/update", HTTP_POST,
-      [](AsyncWebServerRequest *request) {},
-      handleUpdate);
+      "/update", HTTP_POST, [](AsyncWebServerRequest *request)
+      {
+    shouldReboot = !Update.hasError();
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", shouldReboot ? "{ \"success\": true, \"refresh\": 10}" : "{ \"success\": false}");
+    response->addHeader("Connection", "close");
+    request->send(response); }, handleUpdate);
 
   // run handleUpload function when any file is uploaded
   server.on(
@@ -654,6 +660,12 @@ void loop()
 {
   websocket.cleanupClients();
   audio.loop();
+  if (shouldReboot)
+  {
+    logln("> Rebooting...");
+    delay(100);
+    ESP.restart();
+  }
 }
 
 // optional
