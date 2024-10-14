@@ -311,8 +311,8 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                         id="json_mqtt_user" autocomplete='off' placeholder='MQTT User'></div>
                 <div class="row"><label for="mqtt_pass">MQTT Pass</label><input type='password' name='mqtt_pass'
                         id="json_mqtt_pass" autocomplete='off' placeholder='MQTT Pass'></div>
-                <div class="row"><label for="mqtt_topic">MQTT Topic</label><input type='text' name='mqtt_topic'
-                        id="json_mqtt_topic" autocomplete='off' placeholder='MQTT Topic'></div>
+                <div class="row"><label for="mqtt_prefix">MQTT Prefix</label><input type='text' name='mqtt_prefix'
+                        id="json_mqtt_prefix" autocomplete='off' placeholder='MQTT Prefix'></div>
                 <h3>General</h3>
                 <div class="row"><label for="volume">Start volume</label><input type='text' name='volume'
                         id="json_start_volume" autocomplete='off' placeholder='Start volume'></div>
@@ -388,7 +388,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             for (let i = 0; i < btns.length; i++) {
                 btns[i].addEventListener('click', (event) => {
                     if (event.target.classList.contains('button')) {
-                        console.log(event)
+                        //console.log(event)
                         const cmd = event.target.getAttribute('data-cmd');
                         const value = event.target.getAttribute("data-value")
                         

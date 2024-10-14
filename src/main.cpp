@@ -10,8 +10,8 @@
 #include <FS.h>
 #include "SingleLED.h"
 #include "util.h"
-#include <Ticker.h>
 #include <index.h>
+#include <mqtt.h>
 
 // I2S Pins
 #define I2S_DOUT 25
@@ -33,14 +33,17 @@
 #define WIFI_AP_PSK "12345678x!"
 #define WIFI_TIMEOUT 1000 * 10 // 10 seconds
 #define PASSWORD_HIDDEN "**********"
+#define MQTT_TOPIC_PREFIX "soundboard"
+#define MQTT_TOPIC_CMD "cmd"
+#define MQTT_TOPIC_STATUS "status"
 
 // Audioplay
 Audio audio;
 // LED
-Adafruit_NeoPixel neopixel(1, NEOPIXEL, NEO_GRB + NEO_KHZ800);
-SingleLED led(neopixel);
-// LED Ticker
-Ticker ledTicker;
+SingleLED led(NEOPIXEL, NEO_GRB + NEO_KHZ800);
+// MQTT Client
+WiFiClient espClient;
+MQTT mqtt(espClient);
 
 // Webserver
 AsyncWebServer server(80);
@@ -59,7 +62,7 @@ String settings_mqtt_broker;
 String settings_mqtt_port;
 String settings_mqtt_user;
 String settings_mqtt_pass;
-String settings_mqtt_topic;
+String settings_mqtt_prefix = MQTT_TOPIC_PREFIX;
 int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
 // flag to use from web update to reboot the ESP
@@ -67,12 +70,7 @@ bool shouldReboot = false;
 
 void showAction()
 {
-  led.saveColor();
-  led.off();
-  ledTicker.attach_ms(100, []()
-                      {
-    led.restoreColor();
-    ledTicker.detach(); });
+  led.wink(100);
 }
 
 void readSettings()
@@ -121,25 +119,25 @@ void readSettings()
       settings_balance = doc["balance"].as<int>();
       currentBalance = settings_balance;
     }
-    if(doc.containsKey("mqtt_broker"))
+    if (doc.containsKey("mqtt_broker"))
     {
       settings_mqtt_broker = doc["mqtt_broker"].as<String>();
     }
-    if(doc.containsKey("mqtt_port"))
+    if (doc.containsKey("mqtt_port"))
     {
       settings_mqtt_port = doc["mqtt_port"].as<String>();
     }
-    if(doc.containsKey("mqtt_user"))
+    if (doc.containsKey("mqtt_user"))
     {
       settings_mqtt_user = doc["mqtt_user"].as<String>();
     }
-    if(doc.containsKey("mqtt_pass"))
+    if (doc.containsKey("mqtt_pass"))
     {
       settings_mqtt_pass = doc["mqtt_pass"].as<String>();
     }
-    if(doc.containsKey("mqtt_topic"))
+    if (doc.containsKey("mqtt_prefix"))
     {
-      settings_mqtt_topic = doc["mqtt_topic"].as<String>();
+      settings_mqtt_prefix = doc["mqtt_prefix"].as<String>();
     }
 
     settingsValid = true;
@@ -163,7 +161,7 @@ void writeSettings()
   doc["mqtt_port"] = settings_mqtt_port;
   doc["mqtt_user"] = settings_mqtt_user;
   doc["mqtt_pass"] = settings_mqtt_pass;
-  doc["mqtt_topic"] = settings_mqtt_topic;
+  doc["mqtt_prefix"] = settings_mqtt_prefix;
 
   // Open the file for writing
   File file = FILESYSTEM.open("/settings.json", "w");
@@ -184,6 +182,7 @@ void sendStatus(String status, int refresh = 0)
 {
   showAction();
   websocket.textAll("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
+  mqtt.publish((settings_mqtt_prefix + "/" + MQTT_TOPIC_STATUS).c_str(), ("{\"status\":\"" + status + "\"}").c_str());
 }
 
 void sendAlert(String alert, int refresh = 0)
@@ -213,7 +212,7 @@ void sendData()
   {
     doc["psk"] = "";
   }
-  doc["mqtt_broker"] = settings_mqtt_broker; 
+  doc["mqtt_broker"] = settings_mqtt_broker;
   doc["mqtt_port"] = settings_mqtt_port;
   doc["mqtt_user"] = settings_mqtt_user;
   if (settings_mqtt_pass.length() > 0)
@@ -224,14 +223,15 @@ void sendData()
   {
     doc["mqtt_pass"] = "";
   }
-  doc["mqtt_topic"] = settings_mqtt_topic;
-  
+  doc["mqtt_prefix"] = settings_mqtt_prefix;
+
   doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
   doc["hostname"] = settings_hostname;
   doc["hostname_header"] = settings_hostname;
 
   JsonObject sysinfo = doc.createNestedObject("sysinfo");
   sysinfo["Hostname"] = settings_hostname;
+  sysinfo["MQTT"] = mqtt.isConnected() ? "Connected" : "Disconnected";
   sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + " of " + String(formatFileSize(FILESYSTEM.totalBytes())) + " used (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
   sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
   sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
@@ -286,6 +286,59 @@ void sendData()
   String jsonString;
   serializeJson(doc, jsonString);
   websocket.textAll(jsonString);
+}
+
+void handleMqttMessage(char *topic, byte *payload, unsigned int length)
+{
+  showAction();
+  String status = "";
+  logf("handleMqttMessage: ");
+#ifdef DEBUG
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+#endif
+  logf("> Lenght: %i\n", length);
+  logf("> Topic: %s\n", topic);
+
+  if (length)
+  {
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, payload);
+    if (err)
+    {
+      logf("> Content: deserializeJson() failed: %s", err.c_str());
+    }
+    else
+    {
+      if (doc.containsKey("volume"))
+      {
+        currentVolume = doc["volume"].as<int>();
+        status = "Volume: " + String(map(currentVolume, 0, 21, 0, 100)) + "%";
+        audio.setVolume(currentVolume);
+      }
+      if (doc.containsKey("balance"))
+      {
+        currentBalance = doc["balance"].as<int>();
+        status = "Balance: " + String(currentBalance);
+        audio.setBalance(currentBalance);
+      }
+      if (doc.containsKey("play"))
+      {
+        const char *filename = doc["play"].as<const char *>();
+        status = "Play " + String(filename);
+        audio.stopSong();
+        audio.connecttoFS(SD, filename);
+      }
+    }
+  }
+
+  if (status.length() > 0)
+  {
+    sendStatus(status);
+  }
 }
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
@@ -412,9 +465,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
       {
         settings_mqtt_pass = doc["settings"]["mqtt_pass"].as<String>();
       }
-      if (doc["settings"].containsKey("mqtt_topic"))
+      if (doc["settings"].containsKey("mqtt_prefix"))
       {
-        settings_mqtt_topic = doc["settings"]["mqtt_topic"].as<String>();
+        settings_mqtt_prefix = doc["settings"]["mqtt_prefix"].as<String>();
       }
 
       writeSettings();
@@ -455,6 +508,21 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
   }
 }
 
+void initMQTT()
+{
+  if (mqtt.begin(settings_mqtt_broker.c_str(), settings_mqtt_port.toInt(), WiFi.getHostname(), settings_mqtt_user.c_str(), settings_mqtt_pass.c_str()))
+  {
+    logln("MQTT connected");
+    mqtt.setCallback(handleMqttMessage);
+    mqtt.subscribe((settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
+  }
+  else
+  {
+    logln("MQTT connection failed");
+    logf("> State: %i\n", mqtt.state());
+  }
+}
+
 void initWebSocket()
 {
   websocket.onEvent(onEvent);
@@ -465,7 +533,6 @@ void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t
 {
   if (!index)
   {
-    showAction();
     logf("Upload started: %s\n", filename.c_str());
     request->_tempFile = SD.open("/" + filename, "w");
   }
@@ -489,7 +556,6 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
   if (!index)
   {
     audio.stopSong();
-    showAction();
     logln("Flashing firmware starting...");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH))
     {
@@ -714,6 +780,12 @@ void setup()
   audio.setVolume(settings_volume);
   audio.setBalance(settings_balance);
 
+  // MQTT
+  if (settingsValid)
+  {
+    initMQTT();
+  }
+
   logln(F("Setup done."));
   led.setColor(0, 255, 0); // Green. Ready...
 }
@@ -722,6 +794,7 @@ void loop()
 {
   websocket.cleanupClients();
   audio.loop();
+  mqtt.loop();
   if (shouldReboot)
   {
     logln("> Rebooting...");
