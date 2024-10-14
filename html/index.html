@@ -129,7 +129,7 @@
             display: none;
         }
 
-        #loader_msg {
+        #loader_msg, #loader_close {
             padding-top: 20px;
         }
 
@@ -306,6 +306,9 @@
             <div></div>
         </div>
         <div id="loader_msg">Loading...</div>
+        <div id="loader_close" style="display:none">
+            <button class="button">Close</button>
+        </div>
     </div>
     <script>
         const cookiename = "overwrite-host";
@@ -445,6 +448,13 @@
                     websocket.send(`{${name}: ${value}}`);
                 });
             });
+
+            var loaderCloseBtn = document.querySelectorAll('#loader_close button');
+            loaderCloseBtn.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    hideLoader();
+                });
+            });
         }
 
         function initPostHook() {
@@ -477,29 +487,29 @@
                     xhr.onreadystatechange = function () {
                         if (xhr.readyState === 4 && xhr.status === 200) {
                             const response = JSON.parse(xhr.responseText);
-                            console.log('Upload Complete');
+                            let prefix = "Upload ";
+                            if (event.target.id === 'fwupdate') {
+                                prefix = "Flashing ";
+                            }
                             if (response.success !== undefined) {
                                 if (response.success) {
                                     if (response.refresh !== undefined) {
-                                        if (event.target.id === 'fwupdate') {
-                                            document.getElementById('loader_msg').innerHTML = 'Flashing complete, rebooting...';
-                                        } else {
-                                            document.getElementById('loader_msg').innerHTML = 'Upload complete, rebooting...';
-                                        }
-
+                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete, rebooting...';
                                         // reload page
                                         setTimeout(() => {
                                             window.location.reload(true);
                                         }, response.refresh * 1000);
                                     } else {
-                                        document.getElementById('loader_msg').innerHTML = 'Upload complete';
+                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete';
                                         getData();
                                     }
                                 } else {
-                                    document.getElementById('loader_msg').innerHTML = 'Upload failed';
+                                    document.getElementById('loader_msg').innerHTML = prefix + 'failed';
+                                    showLoaderCloseBtn();
                                 }
                             } else {
-                                document.getElementById('loader_msg').innerHTML = 'Upload failed';
+                                document.getElementById('loader_msg').innerHTML = prefix + 'failed';
+                                showLoaderCloseBtn();
                             }
                         }
                     };
@@ -517,11 +527,18 @@
             document.getElementById('loader_msg').innerHTML = 'Loading...';
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('loader').style.display = 'block';
+            document.getElementById('loader_close').style.display = 'none';
+            document.querySelector('.lds-ring').style.display = 'block';
         }
 
         function hideLoader() {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('loader').style.display = 'none';
+        }
+
+        function showLoaderCloseBtn() {
+            document.getElementById('loader_close').style.display = 'block';
+            document.querySelector('.lds-ring').style.display = 'none';
         }
 
         function getData() {
