@@ -23,6 +23,13 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             margin: 0 0 10px 0;
         }
 
+        h3 {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: left;
+        }
+
         .topnav {
             overflow: hidden;
             background-color: #143642;
@@ -129,22 +136,28 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             display: none;
         }
 
-        #loader_msg {
+        #loader_msg,
+        #loader_close {
             padding-top: 20px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
+        .row {
             text-align: left;
+            border-left: 3px solid #ccc;
+            padding: 2px 0 2px 5px;
+
+        }
+
+        label {
+            margin-bottom: 2px;
             font-weight: bold;
+            display: block;
         }
 
         input[type=text],
         input[type=password] {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
+            padding: 3px;
             box-sizing: border-box;
         }
 
@@ -282,18 +295,32 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
         <div class="card">
             <h2>Settings</h2>
             <form id="settings">
-                <p><label for="ssid">SSID</label><input type='text' name='ssid' id="json_ssid" autocomplete='off'
-                        placeholder='SSID'></p>
-                <p><label for="psk">PSK</label><input type='password' name='psk' id="json_psk" autocomplete='off'
-                        placeholder='PSK'></p>
-                <p><label for="hostname">Hostname</label><input type='text' name='hostname' id="json_hostname"
-                        autocomplete='off' placeholder='Hostname'></p>
-                <p><label for="volume">Start volume</label><input type='text' name='volume' id="json_start_volume"
-                        autocomplete='off' placeholder='Start volume'></p>
-                <p><label for="balance">Start balance</label><input type='text' name='balance' id="json_start_balance"
-                        autocomplete='off' placeholder='Start balance'></p>
-                <p><input type="button" data-cmd="settingssave" class="button confirm showLoader"
-                        value='Save and Reboot'></p>
+                <h3>Network</h3>
+                <div class="row"><label for="ssid">SSID</label><input type='text' name='ssid' id="json_ssid"
+                        autocomplete='off' placeholder='SSID'></div>
+                <div class="row"><label for="psk">PSK</label><input type='password' name='psk' id="json_psk"
+                        autocomplete='off' placeholder='PSK'></div>
+                <div class="row"><label for="hostname">Hostname</label><input type='text' name='hostname'
+                        id="json_hostname" autocomplete='off' placeholder='Hostname'></div>
+                <h3>MQTT</h3>
+                <div class="row"><label for="mqtt_broker">MQTT Broker</label><input type='text' name='mqtt_broker'
+                        id="json_mqtt_broker" autocomplete='off' placeholder='MQTT Broker'></div>
+                <div class="row"><label for="mqtt_port">MQTT Port</label><input type='text' name='mqtt_port'
+                        id="json_mqtt_port" autocomplete='off' placeholder='MQTT Port'></div>
+                <div class="row"><label for="mqtt_user">MQTT User</label><input type='text' name='mqtt_user'
+                        id="json_mqtt_user" autocomplete='off' placeholder='MQTT User'></div>
+                <div class="row"><label for="mqtt_pass">MQTT Pass</label><input type='password' name='mqtt_pass'
+                        id="json_mqtt_pass" autocomplete='off' placeholder='MQTT Pass'></div>
+                <div class="row"><label for="mqtt_topic">MQTT Topic</label><input type='text' name='mqtt_topic'
+                        id="json_mqtt_topic" autocomplete='off' placeholder='MQTT Topic'></div>
+                <h3>General</h3>
+                <div class="row"><label for="volume">Start volume</label><input type='text' name='volume'
+                        id="json_start_volume" autocomplete='off' placeholder='Start volume'></div>
+                <div class="row"><label for="balance">Start balance</label><input type='text' name='balance'
+                        id="json_start_balance" autocomplete='off' placeholder='Start balance'></div>
+                        <br />
+                <input type="button" data-cmd="settingssave" class="button confirm showLoader"
+                        value='Save and Reboot'>
             </form>
         </div>
     </div>
@@ -306,6 +333,9 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             <div></div>
         </div>
         <div id="loader_msg">Loading...</div>
+        <div id="loader_close" style="display:none">
+            <button class="button">Close</button>
+        </div>
     </div>
     <script>
         const cookiename = "overwrite-host";
@@ -358,9 +388,15 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             for (let i = 0; i < btns.length; i++) {
                 btns[i].addEventListener('click', (event) => {
                     if (event.target.classList.contains('button')) {
-                        // console.log(event)
+                        console.log(event)
                         const cmd = event.target.getAttribute('data-cmd');
                         const value = event.target.getAttribute("data-value")
+                        
+                        // skip if no command is set
+                        if(cmd == null) {
+                            return;
+                        }
+
                         let dosend = true;
                         if (event.target.classList.contains('confirm')) {
                             dosend = confirm('Are you sure?');
@@ -445,6 +481,13 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                     websocket.send(`{${name}: ${value}}`);
                 });
             });
+
+            var loaderCloseBtn = document.querySelectorAll('#loader_close button');
+            loaderCloseBtn.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    hideLoader();
+                });
+            });
         }
 
         function initPostHook() {
@@ -459,6 +502,23 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                         return;
                     }
 
+                    // check file extension
+                    if(event.target.id === 'fwupdate') {
+                        const allowedExtensions = ['bin'];
+                        const fileExtension = file.name.split('.').pop();
+                        if (!allowedExtensions.includes(fileExtension)) {
+                            alert('Invalid file type. Please select a valid firmware file.');
+                            return;
+                        }
+                    } else {
+                        const allowedExtensions = ['mp3', 'wav', 'ogg', 'flac'];
+                        const fileExtension = file.name.split('.').pop();
+                        if (!allowedExtensions.includes(fileExtension)) {
+                            alert('Invalid file type. Please select a valid audio file.');
+                            return;
+                        }
+                    }
+
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', event.target.closest('form').getAttribute('action'), true);
 
@@ -466,7 +526,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                         if (e.lengthComputable) {
                             const percentComplete = (e.loaded / e.total) * 100;
                             // console.log(`Upload Progress: ${Math.round(percentComplete)}%`);
-                            document.getElementById('loader_msg').innerHTML = `Upload Progress: ${Math.round(percentComplete)}%`;
+                            document.getElementById('loader_msg').innerHTML = `Upload progress: ${Math.round(percentComplete)}%`;
 
                             if (percentComplete >= 100 && event.target.id === 'fwupdate') {
                                 document.getElementById('loader_msg').innerHTML = 'Flashing firmware...';
@@ -477,29 +537,29 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                     xhr.onreadystatechange = function () {
                         if (xhr.readyState === 4 && xhr.status === 200) {
                             const response = JSON.parse(xhr.responseText);
-                            console.log('Upload Complete');
+                            let prefix = "Upload ";
+                            if (event.target.id === 'fwupdate') {
+                                prefix = "Flashing ";
+                            }
                             if (response.success !== undefined) {
                                 if (response.success) {
                                     if (response.refresh !== undefined) {
-                                        if (event.target.id === 'fwupdate') {
-                                            document.getElementById('loader_msg').innerHTML = 'Flashing complete, rebooting...';
-                                        } else {
-                                            document.getElementById('loader_msg').innerHTML = 'Upload complete, rebooting...';
-                                        }
-
+                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete, rebooting...';
                                         // reload page
                                         setTimeout(() => {
                                             window.location.reload(true);
                                         }, response.refresh * 1000);
                                     } else {
-                                        document.getElementById('loader_msg').innerHTML = 'Upload complete';
+                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete';
                                         getData();
                                     }
                                 } else {
-                                    document.getElementById('loader_msg').innerHTML = 'Upload failed';
+                                    document.getElementById('loader_msg').innerHTML = prefix + 'failed';
+                                    showLoaderCloseBtn();
                                 }
                             } else {
-                                document.getElementById('loader_msg').innerHTML = 'Upload failed';
+                                document.getElementById('loader_msg').innerHTML = prefix + 'failed';
+                                showLoaderCloseBtn();
                             }
                         }
                     };
@@ -517,11 +577,18 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             document.getElementById('loader_msg').innerHTML = 'Loading...';
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('loader').style.display = 'block';
+            document.getElementById('loader_close').style.display = 'none';
+            document.querySelector('.lds-ring').style.display = 'inline-block';
         }
 
         function hideLoader() {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('loader').style.display = 'none';
+        }
+
+        function showLoaderCloseBtn() {
+            document.getElementById('loader_close').style.display = 'block';
+            document.querySelector('.lds-ring').style.display = 'none';
         }
 
         function getData() {

@@ -32,7 +32,7 @@
 #define WIFI_AP_SSID "SoundBoard"
 #define WIFI_AP_PSK "12345678x!"
 #define WIFI_TIMEOUT 1000 * 10 // 10 seconds
-#define WIFI_PSK_HIDDEN "**********"
+#define PASSWORD_HIDDEN "**********"
 
 // Audioplay
 Audio audio;
@@ -55,6 +55,11 @@ bool settingsValid = false;
 String settings_ssid;
 String settings_psk;
 String settings_hostname = DEFAULT_HOSTNAME;
+String settings_mqtt_broker;
+String settings_mqtt_port;
+String settings_mqtt_user;
+String settings_mqtt_pass;
+String settings_mqtt_topic;
 int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
 // flag to use from web update to reboot the ESP
@@ -116,6 +121,26 @@ void readSettings()
       settings_balance = doc["balance"].as<int>();
       currentBalance = settings_balance;
     }
+    if(doc.containsKey("mqtt_broker"))
+    {
+      settings_mqtt_broker = doc["mqtt_broker"].as<String>();
+    }
+    if(doc.containsKey("mqtt_port"))
+    {
+      settings_mqtt_port = doc["mqtt_port"].as<String>();
+    }
+    if(doc.containsKey("mqtt_user"))
+    {
+      settings_mqtt_user = doc["mqtt_user"].as<String>();
+    }
+    if(doc.containsKey("mqtt_pass"))
+    {
+      settings_mqtt_pass = doc["mqtt_pass"].as<String>();
+    }
+    if(doc.containsKey("mqtt_topic"))
+    {
+      settings_mqtt_topic = doc["mqtt_topic"].as<String>();
+    }
 
     settingsValid = true;
   }
@@ -134,6 +159,11 @@ void writeSettings()
   doc["hostname"] = settings_hostname;
   doc["volume"] = settings_volume;
   doc["balance"] = settings_balance;
+  doc["mqtt_broker"] = settings_mqtt_broker;
+  doc["mqtt_port"] = settings_mqtt_port;
+  doc["mqtt_user"] = settings_mqtt_user;
+  doc["mqtt_pass"] = settings_mqtt_pass;
+  doc["mqtt_topic"] = settings_mqtt_topic;
 
   // Open the file for writing
   File file = FILESYSTEM.open("/settings.json", "w");
@@ -177,12 +207,25 @@ void sendData()
   doc["ssid"] = settings_ssid;
   if (settings_psk.length() > 0)
   {
-    doc["psk"] = WIFI_PSK_HIDDEN;
+    doc["psk"] = PASSWORD_HIDDEN;
   }
   else
   {
     doc["psk"] = "";
   }
+  doc["mqtt_broker"] = settings_mqtt_broker; 
+  doc["mqtt_port"] = settings_mqtt_port;
+  doc["mqtt_user"] = settings_mqtt_user;
+  if (settings_mqtt_pass.length() > 0)
+  {
+    doc["mqtt_pass"] = PASSWORD_HIDDEN;
+  }
+  else
+  {
+    doc["mqtt_pass"] = "";
+  }
+  doc["mqtt_topic"] = settings_mqtt_topic;
+  
   doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
   doc["hostname"] = settings_hostname;
   doc["hostname_header"] = settings_hostname;
@@ -262,8 +305,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
       if (strcmp(cmd, "reboot") == 0)
       {
         sendAlert(String("Rebooting..."), 10);
-        sleep(100);
-        ESP.restart();
+        shouldReboot = true;
       }
       else if (strcmp(cmd, "reset") == 0)
       {
@@ -284,6 +326,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     {
       const char *filename = doc["play"].as<const char *>();
       sendStatus(String("Play ") + String(filename));
+      audio.stopSong();
       audio.connecttoFS(SD, filename);
     }
     else if (doc.containsKey("delete"))
@@ -329,7 +372,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         settings_ssid = doc["settings"]["ssid"].as<String>();
       }
       // Update PSK only if not the "hidden value" is sent
-      if (doc["settings"].containsKey("psk") && strcmp(doc["settings"]["psk"].as<const char *>(), WIFI_PSK_HIDDEN) != 0)
+      if (doc["settings"].containsKey("psk") && strcmp(doc["settings"]["psk"].as<const char *>(), PASSWORD_HIDDEN) != 0)
       {
         settings_psk = doc["settings"]["psk"].as<String>();
       }
@@ -353,14 +396,33 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           settings_balance = temp;
         }
       }
+      if (doc["settings"].containsKey("mqtt_broker"))
+      {
+        settings_mqtt_broker = doc["settings"]["mqtt_broker"].as<String>();
+      }
+      if (doc["settings"].containsKey("mqtt_port"))
+      {
+        settings_mqtt_port = doc["settings"]["mqtt_port"].as<String>();
+      }
+      if (doc["settings"].containsKey("mqtt_user"))
+      {
+        settings_mqtt_user = doc["settings"]["mqtt_user"].as<String>();
+      }
+      if (doc["settings"].containsKey("mqtt_pass") && strcmp(doc["settings"]["mqtt_pass"].as<const char *>(), PASSWORD_HIDDEN) != 0)
+      {
+        settings_mqtt_pass = doc["settings"]["mqtt_pass"].as<String>();
+      }
+      if (doc["settings"].containsKey("mqtt_topic"))
+      {
+        settings_mqtt_topic = doc["settings"]["mqtt_topic"].as<String>();
+      }
 
       writeSettings();
 
       if (doc.containsKey("reboot"))
       {
         sendAlert(String("Settings saved. Rebooting..."), 10);
-        sleep(100);
-        ESP.restart();
+        shouldReboot = true;
       }
       else
       {
@@ -513,7 +575,7 @@ void setupWiFiStation()
       {
         log(F("."));
       }
-      delay(50);
+      delay(100);
     }
 
     logln(F("\nConnected to the WiFi network"));
