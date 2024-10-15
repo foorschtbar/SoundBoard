@@ -4,8 +4,8 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 
 ## ToDos
 
-- [ ] Improve MQTT reconnection and resubscription
-- [ ] Improve MQTT reconnection after boot when no connection is available
+- [x] Improve MQTT reconnection and resubscription
+- [x] Improve MQTT reconnection after boot when no connection is available
 - [ ] Make MQTT status topic more "chatty"
 
 ## Links

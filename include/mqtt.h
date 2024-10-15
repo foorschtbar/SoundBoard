@@ -3,8 +3,19 @@
 #include <PubSubClient.h>
 #include <Client.h>
 
+#define MQTT_RECONNECT_INTERVAL 5000
+
+typedef enum
+{
+    MQTT_EVT_CONNECT,
+    MQTT_EVT_DISCONNECT,
+    MQTT_EVT_CONNECT_FAILED
+} MQTTEventType;
 class MQTT
 {
+
+    using MQTTEventHandler = std::function<void(MQTTEventType type)>;
+
 public:
     inline static MQTT *instance()
     {
@@ -16,13 +27,16 @@ public:
     void loop();
     void publish(const char *topic, const char *payload);
     void subscribe(const char *topic);
-    void setCallback(void (*callback)(char *, uint8_t *, unsigned int));
+    void onMessage(void (*callback)(char *, uint8_t *, unsigned int));
     bool isConnected();
     bool connect();
     int state();
+    MQTTEventHandler _eventHandler{nullptr};
+    void onEvent(MQTTEventHandler handler);
+
 private:
     static MQTT *_instance;
-    PubSubClient* _client;
+    PubSubClient *_client;
     String _broker;
     uint16_t _port;
     String _id;

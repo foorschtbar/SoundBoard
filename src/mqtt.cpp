@@ -28,7 +28,16 @@ bool MQTT::begin(const char *broker, uint16_t port, const char *id, const char *
 
 bool MQTT::connect()
 {
-    return _client->connect(_id.c_str(), _user.c_str(), _pass.c_str());
+    if (_client->connect(_id.c_str(), _user.c_str(), _pass.c_str()))
+    {
+        _eventHandler(MQTT_EVT_CONNECT);
+        return true;
+    }
+    else
+    {
+        _eventHandler(MQTT_EVT_CONNECT_FAILED);
+        return false;
+    }
 }
 
 int MQTT::state()
@@ -39,10 +48,13 @@ int MQTT::state()
 void MQTT::loop()
 {
     _client->loop();
-    if(!_client->connected()){
-        if(millis() - _lastReconnectAttempt > 5000){
+    if (!_client->connected())
+    {
+        if (millis() - _lastReconnectAttempt > MQTT_RECONNECT_INTERVAL)
+        {
             _lastReconnectAttempt = millis();
-            if(connect()){
+            if (connect())
+            {
                 _lastReconnectAttempt = 0;
             }
         }
@@ -59,7 +71,7 @@ void MQTT::subscribe(const char *topic)
     _client->subscribe(topic);
 }
 
-void MQTT::setCallback(void (*callback)(char *, uint8_t *, unsigned int))
+void MQTT::onMessage(void (*callback)(char *, uint8_t *, unsigned int))
 {
     _client->setCallback(callback);
 }
@@ -67,4 +79,9 @@ void MQTT::setCallback(void (*callback)(char *, uint8_t *, unsigned int))
 bool MQTT::isConnected()
 {
     return _client->connected();
+}
+
+void MQTT::onEvent(MQTTEventHandler handler)
+{
+    _eventHandler = handler;
 }

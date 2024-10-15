@@ -489,7 +489,62 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
   }
 }
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+void onMQTTEvent(MQTTEventType event)
+{
+  switch (event)
+  {
+  case MQTT_EVT_CONNECT:
+    logln("MQTT (re)connected");
+    mqtt.subscribe((settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
+    logf("> Subscribed to: %s\n", (settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
+    mqtt.publish((settings_mqtt_prefix + "/" + MQTT_TOPIC_STATUS).c_str(), "{\"status\":\"Connected\"}");
+    break;
+  case MQTT_EVT_DISCONNECT:
+    logln("MQTT disconnected");
+    break;
+  case MQTT_EVT_CONNECT_FAILED:
+    log("MQTT connection failed: ");
+    switch (mqtt.state())
+    {
+    case MQTT_CONNECTION_TIMEOUT:
+      logln("MQTT_CONNECTION_TIMEOUT");
+      break;
+    case MQTT_CONNECTION_LOST:
+      logln("MQTT_CONNECTION_LOST");
+      break;
+    case MQTT_CONNECT_FAILED:
+      logln("MQTT_CONNECT_FAILED");
+      break;
+    case MQTT_DISCONNECTED:
+      logln("MQTT_DISCONNECTED");
+      break;
+    case MQTT_CONNECTED:
+      logln("MQTT_CONNECTED");
+      break;
+    case MQTT_CONNECT_BAD_PROTOCOL:
+      logln("MQTT_CONNECT_BAD_PROTOCOL");
+      break;
+    case MQTT_CONNECT_BAD_CLIENT_ID:
+      logln("MQTT_CONNECT_BAD_CLIENT_ID");
+      break;
+    case MQTT_CONNECT_UNAVAILABLE:
+      logln("MQTT_CONNECT_UNAVAILABLE");
+      break;
+    case MQTT_CONNECT_BAD_CREDENTIALS:
+      logln("MQTT_CONNECT_BAD_CREDENTIALS");
+      break;
+    case MQTT_CONNECT_UNAUTHORIZED:
+      logln("MQTT_CONNECT_UNAUTHORIZED");
+      break;
+    default:
+      logln("UNKOWN");
+      break;
+    }
+    break;
+  }
+}
+
+void onWSEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
   switch (type)
   {
@@ -510,22 +565,15 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
 
 void initMQTT()
 {
-  if (mqtt.begin(settings_mqtt_broker.c_str(), settings_mqtt_port.toInt(), WiFi.getHostname(), settings_mqtt_user.c_str(), settings_mqtt_pass.c_str()))
-  {
-    logln("MQTT connected");
-    mqtt.setCallback(handleMqttMessage);
-    mqtt.subscribe((settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
-  }
-  else
-  {
-    logln("MQTT connection failed");
-    logf("> State: %i\n", mqtt.state());
-  }
+  mqtt.onMessage(handleMqttMessage);
+  mqtt.onEvent(onMQTTEvent);
+  mqtt.begin(settings_mqtt_broker.c_str(), settings_mqtt_port.toInt(), WiFi.getHostname(), settings_mqtt_user.c_str(), settings_mqtt_pass.c_str());
+  mqtt.connect();
 }
 
 void initWebSocket()
 {
-  websocket.onEvent(onEvent);
+  websocket.onEvent(onWSEvent);
   server.addHandler(&websocket);
 }
 
