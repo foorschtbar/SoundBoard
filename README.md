@@ -2,6 +2,12 @@
 
 A simple pcb with two audio drivers, a sd card reader and a microcontroller to play sounds.
 
+## Frontend development
+
+- Start the frontend development server with `python .\webserver.py` in the `html` directory.
+- Open the browser at `http://localhost:8000/` to see the frontend.
+- Set manual a cookie with `overwrite-host` to the hostname or ip of the device and reload the page.
+
 ## ToDos
 
 - [x] Improve MQTT reconnection and resubscription
