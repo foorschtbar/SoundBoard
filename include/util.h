@@ -40,3 +40,4 @@ inline void logf(T... args)
 size_t hex_decode(const String &hex, uint8_t *buf, size_t len);
 void print_byte(uint8_t byte);
 String formatFileSize(size_t fileSize);
+long RSSI2Quality(long dBm);

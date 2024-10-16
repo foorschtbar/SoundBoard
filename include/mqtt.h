@@ -24,23 +24,31 @@ public:
     explicit MQTT(Client &espClient);
     ~MQTT();
     bool begin(const char *broker, uint16_t port, const char *id, const char *user, const char *pass);
+    void setLWT(const char* willTopic, uint8_t willQos, boolean willRetain, const char* willMessage);
     void loop();
     void publish(const char *topic, const char *payload);
     void subscribe(const char *topic);
     void onMessage(void (*callback)(char *, uint8_t *, unsigned int));
+    void setPrefix(const char *prefix);
     bool isConnected();
     bool connect();
-    int state();
+    const char * state();
     MQTTEventHandler _eventHandler{nullptr};
     void onEvent(MQTTEventHandler handler);
+    void setBufferSize(uint16_t size);
 
 private:
     static MQTT *_instance;
     PubSubClient *_client;
-    String _broker;
+    const char *_broker;
     uint16_t _port;
-    String _id;
-    String _user;
-    String _pass;
+    const char *_id;
+    const char *_user;
+    const char *_pass;
+    const char *_prefix;
+    const char *_willTopic;
+    uint8_t _willQos;
+    boolean _willRetain;
+    const char *_willMessage;
     unsigned long _lastReconnectAttempt = 0;
 };

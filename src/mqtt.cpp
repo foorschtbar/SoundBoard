@@ -26,9 +26,34 @@ bool MQTT::begin(const char *broker, uint16_t port, const char *id, const char *
     return _client->connect(id, user, pass);
 }
 
+void MQTT::setLWT(const char *willTopic, uint8_t willQos, boolean willRetain, const char *willMessage)
+{
+    _willTopic = willTopic;
+    _willQos = willQos;
+    _willRetain = willRetain;
+    _willMessage = willMessage;
+}
+
 bool MQTT::connect()
 {
-    if (_client->connect(_id.c_str(), _user.c_str(), _pass.c_str()))
+    bool connected = false;
+    if (strlen(_willTopic) > 0)
+    {
+        if(strlen(_prefix) > 0) {
+            char newTopic[strlen(_prefix) + strlen(_willTopic) + 1];
+            strcpy(newTopic, _prefix);
+            strcat(newTopic, _willTopic);
+            connected = _client->connect(_id, _user, _pass, newTopic, _willQos, _willRetain, _willMessage);
+        } else {
+            connected = _client->connect(_id, _user, _pass, _willTopic, _willQos, _willRetain, _willMessage);
+        }
+    }
+    else
+    {
+        connected = _client->connect(_id, _user, _pass);
+    }
+
+    if (connected)
     {
         _eventHandler(MQTT_EVT_CONNECT);
         return true;
@@ -40,9 +65,33 @@ bool MQTT::connect()
     }
 }
 
-int MQTT::state()
+const char *MQTT::state()
 {
-    return _client->state();
+    switch (_client->state())
+    {
+    case MQTT_CONNECTION_TIMEOUT:
+        return "MQTT_CONNECTION_TIMEOUT";
+    case MQTT_CONNECTION_LOST:
+        return "MQTT_CONNECTION_LOST";
+    case MQTT_CONNECT_FAILED:
+        return "MQTT_CONNECT_FAILED";
+    case MQTT_DISCONNECTED:
+        return "MQTT_DISCONNECTED";
+    case MQTT_CONNECTED:
+        return "MQTT_CONNECTED";
+    case MQTT_CONNECT_BAD_PROTOCOL:
+        return "MQTT_CONNECT_BAD_PROTOCOL";
+    case MQTT_CONNECT_BAD_CLIENT_ID:
+        return "MQTT_CONNECT_BAD_CLIENT_ID";
+    case MQTT_CONNECT_UNAVAILABLE:
+        return "MQTT_CONNECT_UNAVAILABLE";
+    case MQTT_CONNECT_BAD_CREDENTIALS:
+        return "MQTT_CONNECT_BAD_CREDENTIALS";
+    case MQTT_CONNECT_UNAUTHORIZED:
+        return "MQTT_CONNECT_UNAUTHORIZED";
+    default:
+        return "UNKNOWN";
+    }
 }
 
 void MQTT::loop()
@@ -63,12 +112,30 @@ void MQTT::loop()
 
 void MQTT::publish(const char *topic, const char *payload)
 {
-    _client->publish(topic, payload);
+    // if prefix length is greater than 0, prepend it to the topic
+    if (strlen(_prefix) > 0)
+    {
+        char newTopic[strlen(_prefix) + strlen(topic) + 1];
+        strcpy(newTopic, _prefix);
+        strcat(newTopic, topic);
+        _client->publish(newTopic, payload);
+    }
+    else
+    {
+        +_client->publish(topic, payload);
+    }
 }
 
 void MQTT::subscribe(const char *topic)
 {
-    _client->subscribe(topic);
+    if(strlen(_prefix) > 0) {
+        char newTopic[strlen(_prefix) + strlen(topic) + 1];
+        strcpy(newTopic, _prefix);
+        strcat(newTopic, topic);
+        _client->subscribe(newTopic);
+    } else {
+        _client->subscribe(topic);
+    }
 }
 
 void MQTT::onMessage(void (*callback)(char *, uint8_t *, unsigned int))
@@ -84,4 +151,14 @@ bool MQTT::isConnected()
 void MQTT::onEvent(MQTTEventHandler handler)
 {
     _eventHandler = handler;
+}
+
+void MQTT::setPrefix(const char *prefix)
+{
+    _prefix = prefix;
+}
+
+void MQTT::setBufferSize(uint16_t size)
+{
+    _client->setBufferSize(size);
 }

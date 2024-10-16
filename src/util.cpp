@@ -85,3 +85,13 @@ String formatFileSize(size_t fileSize)
         return String(fileSize / (1024.0 * 1024 * 1024), 2) + " GB"; // 2 decimal places
     }
 }
+
+long RSSI2Quality(long dBm)
+{
+    if (dBm <= -100)
+        return 0;
+    else if (dBm >= -50)
+        return 100;
+    else
+        return 2 * (dBm + 100);
+}

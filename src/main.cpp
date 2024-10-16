@@ -36,6 +36,7 @@
 #define MQTT_TOPIC_PREFIX "soundboard"
 #define MQTT_TOPIC_CMD "cmd"
 #define MQTT_TOPIC_STATUS "status"
+#define SYSINFO_UPDATE_INTERVAL 1000 * 30
 
 // Audioplay
 Audio audio;
@@ -65,8 +66,8 @@ String settings_mqtt_pass;
 String settings_mqtt_prefix = MQTT_TOPIC_PREFIX;
 int settings_volume = 5;  // 0-21
 int settings_balance = 0; // -16 to 16
-// flag to use from web update to reboot the ESP
-bool shouldReboot = false;
+bool shouldReboot = false; // flag to use from web update to reboot the ESP
+unsigned long lastSysInfoUpdate = 0;
 
 void showAction()
 {
@@ -182,7 +183,7 @@ void sendStatus(String status, int refresh = 0)
 {
   showAction();
   websocket.textAll("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
-  mqtt.publish((settings_mqtt_prefix + "/" + MQTT_TOPIC_STATUS).c_str(), ("{\"status\":\"" + status + "\"}").c_str());
+  mqtt.publish(MQTT_TOPIC_STATUS, ("{\"status\":\"" + status + "\"}").c_str());
 }
 
 void sendAlert(String alert, int refresh = 0)
@@ -191,47 +192,15 @@ void sendAlert(String alert, int refresh = 0)
   websocket.textAll("{\"alert\":\"" + alert + "\", \"refresh\":" + String(refresh) + "}");
 }
 
-void sendData()
+void sendData(bool shortMsg = false)
 {
   showAction();
   // Create a JSON document
   StaticJsonDocument<3000> doc;
 
-  // Add data to the JSON document
-  doc["status"] = "Reeeaaaady...";
-  doc["start_volume"] = settings_volume;
-  doc["cur_volume"] = currentVolume;
-  doc["start_balance"] = settings_balance;
-  doc["cur_balance"] = currentBalance;
-  doc["ssid"] = settings_ssid;
-  if (settings_psk.length() > 0)
-  {
-    doc["psk"] = PASSWORD_HIDDEN;
-  }
-  else
-  {
-    doc["psk"] = "";
-  }
-  doc["mqtt_broker"] = settings_mqtt_broker;
-  doc["mqtt_port"] = settings_mqtt_port;
-  doc["mqtt_user"] = settings_mqtt_user;
-  if (settings_mqtt_pass.length() > 0)
-  {
-    doc["mqtt_pass"] = PASSWORD_HIDDEN;
-  }
-  else
-  {
-    doc["mqtt_pass"] = "";
-  }
-  doc["mqtt_prefix"] = settings_mqtt_prefix;
-
-  doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
-  doc["hostname"] = settings_hostname;
-  doc["hostname_header"] = settings_hostname;
-
   JsonObject sysinfo = doc.createNestedObject("sysinfo");
   sysinfo["Hostname"] = settings_hostname;
-  sysinfo["MQTT"] = mqtt.isConnected() ? "Connected" : "Disconnected";
+  sysinfo["MQTT"] = (mqtt.isConnected() ? "Connected" : "Disconnected (" + String(mqtt.state()) + ")");
   sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + " of " + String(formatFileSize(FILESYSTEM.totalBytes())) + " used (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
   sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
   sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
@@ -249,6 +218,7 @@ void sendData()
     sysinfo["IP address"] = WiFi.softAPIP().toString();
     sysinfo["MAC address"] = WiFi.softAPmacAddress();
   }
+  sysinfo["WiFi RSSI"] = String(RSSI2Quality(WiFi.RSSI())) + "% (" + String(WiFi.RSSI()) + " dBm)";
   sysinfo["Free Heap"] = ESP.getFreeHeap();
   sysinfo["Free PSRAM"] = ESP.getFreePsram();
   sysinfo["Chip Revision"] = ESP.getChipRevision();
@@ -257,42 +227,85 @@ void sendData()
   sysinfo["Flash Chip Size"] = ESP.getFlashChipSize();
   sysinfo["Compiled"] = String(__DATE__) + " " + String(__TIME__);
 
-  // Filelist
-  JsonArray filesArray = doc.createNestedArray("fs");
-
-  File root = SD.open("/");
-  if (!root)
+  if (!shortMsg)
   {
-    logln(F("Failed to open directory"));
-    return;
-  }
 
-  File file = root.openNextFile();
-  while (file)
-  {
-    // Filter System Volume Information
-    if (String(file.name()).indexOf("System Volume Information") == -1)
+    // Add data to the JSON document
+    doc["status"] = "Reeeaaaady...";
+    doc["start_volume"] = settings_volume;
+    doc["cur_volume"] = currentVolume;
+    doc["start_balance"] = settings_balance;
+    doc["cur_balance"] = currentBalance;
+    doc["ssid"] = settings_ssid;
+    if (settings_psk.length() > 0)
     {
-      JsonObject fileObj = filesArray.createNestedObject();
-      fileObj["name"] = String(file.name());
-      fileObj["size"] = String(file.size());
+      doc["psk"] = PASSWORD_HIDDEN;
+    }
+    else
+    {
+      doc["psk"] = "";
+    }
+    doc["mqtt_broker"] = settings_mqtt_broker;
+    doc["mqtt_port"] = settings_mqtt_port;
+    doc["mqtt_user"] = settings_mqtt_user;
+    if (settings_mqtt_pass.length() > 0)
+    {
+      doc["mqtt_pass"] = PASSWORD_HIDDEN;
+    }
+    else
+    {
+      doc["mqtt_pass"] = "";
+    }
+    doc["mqtt_prefix"] = settings_mqtt_prefix;
+
+    doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    doc["hostname"] = settings_hostname;
+    doc["hostname_header"] = settings_hostname;
+
+    // Filelist
+    JsonArray filesArray = doc.createNestedArray("fs");
+
+    File root = SD.open("/");
+    if (!root)
+    {
+      logln(F("Failed to open directory"));
+      return;
     }
 
-    file = root.openNextFile();
+    File file = root.openNextFile();
+    while (file)
+    {
+      // Filter System Volume Information
+      if (String(file.name()).indexOf("System Volume Information") == -1)
+      {
+        JsonObject fileObj = filesArray.createNestedObject();
+        fileObj["name"] = String(file.name());
+        fileObj["size"] = String(file.size());
+      }
+
+      file = root.openNextFile();
+    }
+    root.close();
   }
-  root.close();
 
   // Serialize the JSON document to a string
   String jsonString;
   serializeJson(doc, jsonString);
   websocket.textAll(jsonString);
+  if (mqtt.isConnected() && shortMsg)
+  {
+    // logf("Sending MQTT status\n");
+    // logf("> Length: %i\n", jsonString.length());
+    // logf("> Content: %s\n", jsonString.c_str());
+    mqtt.publish(MQTT_TOPIC_STATUS, jsonString.c_str());
+  }
 }
 
 void handleMqttMessage(char *topic, byte *payload, unsigned int length)
 {
   showAction();
   String status = "";
-  logf("handleMqttMessage: ");
+  logf("handleMqttMessage\n>Content: ");
 #ifdef DEBUG
   for (int i = 0; i < length; i++)
   {
@@ -309,7 +322,7 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
     DeserializationError err = deserializeJson(doc, payload);
     if (err)
     {
-      logf("> Content: deserializeJson() failed: %s", err.c_str());
+      logf("> JSON: deserializeJson() failed: %s", err.c_str());
     }
     else
     {
@@ -331,6 +344,15 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
         status = "Play " + String(filename);
         audio.stopSong();
         audio.connecttoFS(SD, filename);
+      }
+      if(doc.containsKey("stop"))
+      {
+        audio.stopSong();
+        status = "Stop";
+      }
+      if(doc.containsKey("status"))
+      {
+        sendData(true);
       }
     }
   }
@@ -495,53 +517,17 @@ void onMQTTEvent(MQTTEventType event)
   {
   case MQTT_EVT_CONNECT:
     logln("MQTT (re)connected");
-    mqtt.subscribe((settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
-    logf("> Subscribed to: %s\n", (settings_mqtt_prefix + "/" + MQTT_TOPIC_CMD).c_str());
-    mqtt.publish((settings_mqtt_prefix + "/" + MQTT_TOPIC_STATUS).c_str(), "{\"status\":\"Connected\"}");
+    mqtt.subscribe(MQTT_TOPIC_CMD);
+    logf("> Subscribed to: %s\n", (settings_mqtt_prefix + MQTT_TOPIC_CMD).c_str());
+    mqtt.publish(MQTT_TOPIC_STATUS, "{\"status\":\"Connected\"}");
     break;
   case MQTT_EVT_DISCONNECT:
-    logln("MQTT disconnected");
     break;
   case MQTT_EVT_CONNECT_FAILED:
     log("MQTT connection failed: ");
-    switch (mqtt.state())
-    {
-    case MQTT_CONNECTION_TIMEOUT:
-      logln("MQTT_CONNECTION_TIMEOUT");
-      break;
-    case MQTT_CONNECTION_LOST:
-      logln("MQTT_CONNECTION_LOST");
-      break;
-    case MQTT_CONNECT_FAILED:
-      logln("MQTT_CONNECT_FAILED");
-      break;
-    case MQTT_DISCONNECTED:
-      logln("MQTT_DISCONNECTED");
-      break;
-    case MQTT_CONNECTED:
-      logln("MQTT_CONNECTED");
-      break;
-    case MQTT_CONNECT_BAD_PROTOCOL:
-      logln("MQTT_CONNECT_BAD_PROTOCOL");
-      break;
-    case MQTT_CONNECT_BAD_CLIENT_ID:
-      logln("MQTT_CONNECT_BAD_CLIENT_ID");
-      break;
-    case MQTT_CONNECT_UNAVAILABLE:
-      logln("MQTT_CONNECT_UNAVAILABLE");
-      break;
-    case MQTT_CONNECT_BAD_CREDENTIALS:
-      logln("MQTT_CONNECT_BAD_CREDENTIALS");
-      break;
-    case MQTT_CONNECT_UNAUTHORIZED:
-      logln("MQTT_CONNECT_UNAUTHORIZED");
-      break;
-    default:
-      logln("UNKOWN");
-      break;
-    }
-    break;
+    logln(mqtt.state());
   }
+  sendData(true);
 }
 
 void onWSEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
@@ -567,7 +553,10 @@ void initMQTT()
 {
   mqtt.onMessage(handleMqttMessage);
   mqtt.onEvent(onMQTTEvent);
+  mqtt.setPrefix(settings_mqtt_prefix.c_str());
+  mqtt.setBufferSize(1024);
   mqtt.begin(settings_mqtt_broker.c_str(), settings_mqtt_port.toInt(), WiFi.getHostname(), settings_mqtt_user.c_str(), settings_mqtt_pass.c_str());
+  mqtt.setLWT(MQTT_TOPIC_STATUS, 0, true, "{\"status\":\"Disconnected\"}");
   mqtt.connect();
 }
 
@@ -834,7 +823,9 @@ void setup()
     initMQTT();
   }
 
+
   logln(F("Setup done."));
+  delay(100);
   led.setColor(0, 255, 0); // Green. Ready...
 }
 
@@ -849,18 +840,30 @@ void loop()
     delay(100);
     ESP.restart();
   }
+
+  // send actual system info every x seconds 
+  // via websocket and MQTT
+  if (millis() - lastSysInfoUpdate > SYSINFO_UPDATE_INTERVAL)
+  {
+    sendData(true);
+    lastSysInfoUpdate = millis();
+  }
 }
 
 // optional
 void audio_info(const char *info)
 {
+#ifdef DEBUG
   Serial.print("info        ");
   Serial.println(info);
+#endif
 }
 void audio_id3data(const char *info)
 { // id3 metadata
+#ifdef DEBUG
   Serial.print("id3data     ");
   Serial.println(info);
+#endif
 }
 
 // end of file
