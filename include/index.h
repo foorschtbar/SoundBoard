@@ -1,3 +1,4 @@
+// WARNING! Do not modify this file, it is auto-generated from index.html at build!
 const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
 <html>
 
@@ -231,6 +232,15 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             background-color: #f0f0f0d7;
             cursor: pointer;
         }
+
+        footer {
+            a, a:visited {
+                color: #7a7a7a;
+            }
+            a:hover {
+                text-decoration: none;
+            }
+        }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/svg+xml"
@@ -324,6 +334,9 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             </form>
         </div>
     </div>
+    <footer>
+        <p>&copy; 2024 <a href="https://github.com/foorschtbar/">foorschtbar</a> - <a href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
+    </footer>
     <div id="overlay" class="overlay"></div>
     <div id="loader" class="loader">
         <div class="lds-ring">

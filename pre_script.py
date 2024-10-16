@@ -2,19 +2,20 @@ import os
 import re
 Import("env")
 
-print("Updating WebUI")
+print("External script: Updating WebUI...")
 
 # Read content
 html = open('./html/index.html', 'r')
 o = html.read()
-content = o
+indexhtml = o
 html.close()
 
 # HTML content to C++ string
-content = "const char index_html[] PROGMEM = R\"=====(" + content + ")=====\";"
+content = "// WARNING! Do not modify this file, it is auto-generated from index.html at build!\n"
+content += "const char index_html[] PROGMEM = R\"=====(" + indexhtml + ")=====\";"
 
 # Write the content of the file
-webuih = open('./src/index.h', 'w')
+webuih = open('./include/index.h', 'w')
 webuih.write(content)
 webuih.close()
-print("WebUI updated")
+print("External script: Updating WebUI successful!")
