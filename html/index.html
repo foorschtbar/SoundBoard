@@ -68,6 +68,15 @@
             padding: 20px;
             margin: 30px;
             border-radius: 5px;
+
+            &.hidden {
+                display: none;
+            }
+
+            .hover {
+                background-color: #f0f0f0d7;
+                cursor: pointer;
+            }
         }
 
         .button {
@@ -227,11 +236,6 @@
 
         }
 
-        .card .hover {
-            background-color: #f0f0f0d7;
-            cursor: pointer;
-        }
-
         footer {
 
             a,
@@ -266,16 +270,30 @@
     </div>
     <div class="content">
         <div class="card">
+            <h2>Login</h2>
+            <form action="/auth">
+                <div class="row">
+                    <label for="username">Username</label>
+                    <input type="text" name="username" autocomplete="off" placeholder="Username">
+                </div>
+                <div class="row">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" autocomplete="off" placeholder="Password">
+                </div>
+                <input type="button" data-cmd="login" class="button" value='Login'>
+            </form>
+        </div>
+        <div class="card hidden">
             <h2>System</h2>
             <div id="json_sysinfo"></div>
         </div>
-        <div class="card">
+        <div class="card hidden">
             <h2>Volume</h2>
             <input type="range" id="json_cur_volume" name="volume" min="0" max="21" step="1" value="0">
             <h2>Balance</h2>
             <input type="range" id="json_cur_balance" name="balance" min="-16" max="16" step="1" value="0">
         </div>
-        <div class="card">
+        <div class="card hidden">
             <h2>Filesystem (external)</h2>
             <p>
             <div id="json_fs_info"></div>
@@ -291,7 +309,7 @@
             </form>
             </p>
         </div>
-        <div class="card">
+        <div class="card hidden">
             <h2>Text-to-Speech</h2>
             <p>
                 <label for="tts_text">Text</label>
@@ -305,7 +323,7 @@
                 <button class="button" data-cmd="tts">Speak</button>
             </p>
         </div>
-        <div class="card">
+        <div class="card hidden">
             <h2>Maintenance</h2>
             <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reboot">Reboot</button></p>
             <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
@@ -318,7 +336,7 @@
             </form>
             </p>
         </div>
-        <div class="card">
+        <div class="card hidden">
             <h2>Settings</h2>
             <form id="settings">
                 <h3>Network</h3>
@@ -353,8 +371,8 @@
         <p>&copy; 2024 <a href="https://github.com/foorschtbar/">foorschtbar</a> - <a
                 href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
     </footer>
-    <div id="overlay" class="overlay"></div>
-    <div id="loader" class="loader">
+    <div id="overlay" class="overlay" style="display: none;"></div>
+    <div id="loader" class="loader" style="display: none;">
         <div class="lds-ring">
             <div></div>
             <div></div>
@@ -398,7 +416,7 @@
         }
         function onOpen(event) {
             console.log('Connection opened');
-            getData();
+            // getData();
         }
         function onClose(event) {
             console.log('Connection closed');
@@ -436,6 +454,28 @@
                                 showLoader();
                             }
                             switch (cmd) {
+                                case 'login':
+                                    var form = event.target.closest('form');
+
+                                    // do basic auth with username and password
+                                    var username = form.elements['username'].value;
+                                    var password = form.elements['password'].value;
+                                    var base64 = btoa(unescape(encodeURIComponent(`${username}:${password}`)));
+                                    var xhr = new XMLHttpRequest();
+                                    xhr.open('GET', form.action, true);
+                                    xhr.setRequestHeader('Authorization', `Basic ${base64}`);
+                                    xhr.onreadystatechange = function () {
+                                        if (xhr.readyState === 4 && xhr.status === 200) {
+                                            console.log("Login successful");
+                                            // open websocket
+                                            websocket.send('{"getData": true}');
+                                        } else if (xhr.readyState === 4 && xhr.status === 401) {
+                                            alert('Login failed');
+                                        }
+                                    };
+                                    xhr.send();
+
+                                    break;
                                 case 'settingssave':
                                     var form = document.getElementById('settings');
                                     var data = { settings: {}, reboot: true };

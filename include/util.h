@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <libb64/cencode.h>
 
 boolean check_serial_write();
 void set_serial_write_failed(boolean failed);
@@ -43,3 +44,4 @@ String formatFileSize(size_t fileSize);
 long RSSI2Quality(long dBm);
 String millisToTime(unsigned long millis);
 String resetReason(int reason);
+String BasicAuthHash(const char *username, const char *password);

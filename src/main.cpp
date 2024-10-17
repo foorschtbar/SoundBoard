@@ -38,6 +38,8 @@
 #define MQTT_TOPIC_CMD "cmd"
 #define MQTT_TOPIC_STATUS "status"
 #define SYSINFO_UPDATE_INTERVAL 1000 * 30
+#define DEFAULT_USERNAME "admin"
+#define DEFAULT_PASSWORD "admin"
 
 // Audioplay
 Audio audio;
@@ -50,6 +52,7 @@ MQTT mqtt(espClient);
 // Webserver
 AsyncWebServer server(80);
 AsyncWebSocket websocket("/ws");
+// std::vector<uint32_t> authenticatedClients;
 
 // Variables
 int currentVolume = 0;
@@ -65,6 +68,8 @@ String settings_mqtt_port;
 String settings_mqtt_user;
 String settings_mqtt_pass;
 String settings_mqtt_prefix = MQTT_TOPIC_PREFIX;
+String settings_username = DEFAULT_USERNAME;
+String settings_password = DEFAULT_PASSWORD;
 int settings_volume = 5;   // 0-21
 int settings_balance = 0;  // -16 to 16
 bool shouldReboot = false; // flag to use from web update to reboot the ESP
@@ -110,6 +115,14 @@ void readSettings()
     if (doc.containsKey("hostname"))
     {
       settings_hostname = doc["hostname"].as<String>();
+    }
+    if (doc.containsKey("username"))
+    {
+      settings_username = doc["username"].as<String>();
+    }
+    if (doc.containsKey("password"))
+    {
+      settings_password = doc["password"].as<String>();
     }
     if (doc.containsKey("volume"))
     {
@@ -157,6 +170,8 @@ void writeSettings()
   doc["ssid"] = settings_ssid;
   doc["psk"] = settings_psk;
   doc["hostname"] = settings_hostname;
+  doc["username"] = settings_username;
+  doc["password"] = settings_password;
   doc["volume"] = settings_volume;
   doc["balance"] = settings_balance;
   doc["mqtt_broker"] = settings_mqtt_broker;
@@ -179,6 +194,33 @@ void writeSettings()
     logln(F("Failed to write to file"));
   }
 }
+
+bool checkCredentials(AsyncWebServerRequest *request)
+{
+  if (request->authenticate(settings_username.c_str(), settings_password.c_str()))
+  {
+    return true;
+  }
+
+  AsyncWebServerResponse *r = request->beginResponse(401);
+
+  // WebAPI should set the X-Requested-With to prevent browser internal auth dialogs
+  if (!request->hasHeader("X-Requested-With"))
+  {
+    r->addHeader("WWW-Authenticate", "Basic realm=\"Login Required\"");
+  }
+  request->send(r);
+
+  return false;
+}
+
+// void textAllAuthenticatedClients(const String &message)
+// {
+//   for (uint32_t clientid : authenticatedClients)
+//   {
+//     websocket.text(clientid, message);
+//   }
+// }
 
 void sendStatus(String status, int refresh = 0)
 {
@@ -264,6 +306,15 @@ void sendData(bool shortMsg = false)
 
     doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
     doc["hostname"] = settings_hostname;
+    doc["username"] = settings_username;
+    if (settings_password.length() > 0)
+    {
+      doc["password"] = PASSWORD_HIDDEN;
+    }
+    else
+    {
+      doc["password"] = "";
+    }
     doc["hostname_header"] = settings_hostname;
 
     // Filelist
@@ -376,7 +427,7 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
   }
 }
 
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+void handleWebSocketMessage(/*uint32_t clientid, */ void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo *)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
@@ -384,8 +435,26 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     data[len] = 0;
     logf("handleWebSocketMessage: %s\n", (char *)data);
 
+    // get websocket client id
+
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char *)data);
+    /*if (doc.containsKey("auth"))
+    {
+      const char *auth = doc["auth"].as<const char *>();
+      // base64 to
+      if (BasicAuthHash(settings_username.c_str(), settings_password.c_str()).equalsIgnoreCase(auth))
+      {
+        logf("Client #%u Authenticated\n", clientid);
+        authenticatedClients.push_back(clientid);
+      }
+      else
+      {
+        logf("Client ID #%u Not Authenticated\n", clientid);
+        websocket.close(clientid, 4000, "Authentication failed");
+        return;
+      }
+    }*/
 
     if (doc.containsKey("cmd"))
     {
@@ -477,6 +546,14 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
       {
         settings_hostname = doc["settings"]["hostname"].as<String>();
       }
+      if (doc["settings"].containsKey("username"))
+      {
+        settings_username = doc["settings"]["username"].as<String>();
+      }
+      if (doc["settings"].containsKey("password") && strcmp(doc["settings"]["password"].as<const char *>(), PASSWORD_HIDDEN) != 0)
+      {
+        settings_password = doc["settings"]["password"].as<String>();
+      }
       if (doc["settings"].containsKey("volume"))
       {
         int temp = doc["settings"]["volume"].as<int>();
@@ -561,9 +638,10 @@ void onWSEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     break;
   case WS_EVT_DISCONNECT:
     logf("WebSocket client #%u disconnected\n", client->id());
+    // authenticatedClients.erase(std::remove(authenticatedClients.begin(), authenticatedClients.end(), client->id()), authenticatedClients.end());
     break;
   case WS_EVT_DATA:
-    handleWebSocketMessage(arg, data, len);
+    handleWebSocketMessage(/*client->id(), */ arg, data, len);
     break;
   case WS_EVT_PONG:
   case WS_EVT_ERROR:
@@ -584,12 +662,18 @@ void initMQTT()
 
 void initWebSocket()
 {
+
   websocket.onEvent(onWSEvent);
   server.addHandler(&websocket);
 }
 
 void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
+  if (!checkCredentials(request))
+  {
+    return;
+  }
+
   if (!index)
   {
     logf("Upload started: %s\n", filename.c_str());
@@ -612,6 +696,11 @@ void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t
 
 void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
+  if (!checkCredentials(request))
+  {
+    return;
+  }
+
   if (!index)
   {
     audio.stopSong();
@@ -810,15 +899,29 @@ void setup()
   server.on(
       "/update", HTTP_POST, [](AsyncWebServerRequest *request)
       {
+        // on finished upload, create response
+        if (!checkCredentials(request))
+        {
+          return;
+        } else {
     shouldReboot = !Update.hasError();
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", shouldReboot ? "{ \"success\": true, \"refresh\": 10}" : "{ \"success\": false}");
     response->addHeader("Connection", "close");
-    request->send(response); }, handleUpdate);
+    request->send(response); 
+} }, handleUpdate);
 
   // run handleUpload function when any file is uploaded
   server.on(
       "/upload", HTTP_POST, [](AsyncWebServerRequest *request) { /*request->send(200);*/ },
       handleUpload);
+
+  server.on("/auth", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              if (!checkCredentials(request))
+              {
+                return;
+              }
+              request->send(200, "application/json", "{ \"success\": true}"); });
 
   // not found handler
   server.onNotFound(handleNotFound);
