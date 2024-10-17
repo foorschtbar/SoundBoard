@@ -12,6 +12,7 @@
 #include "util.h"
 #include <index.h>
 #include <mqtt.h>
+#include "esp32/rom/rtc.h"
 
 // I2S Pins
 #define I2S_DOUT 25
@@ -64,8 +65,8 @@ String settings_mqtt_port;
 String settings_mqtt_user;
 String settings_mqtt_pass;
 String settings_mqtt_prefix = MQTT_TOPIC_PREFIX;
-int settings_volume = 5;  // 0-21
-int settings_balance = 0; // -16 to 16
+int settings_volume = 5;   // 0-21
+int settings_balance = 0;  // -16 to 16
 bool shouldReboot = false; // flag to use from web update to reboot the ESP
 unsigned long lastSysInfoUpdate = 0;
 
@@ -200,9 +201,12 @@ void sendData(bool shortMsg = false)
 
   JsonObject sysinfo = doc.createNestedObject("sysinfo");
   sysinfo["Hostname"] = settings_hostname;
+  sysinfo["Uptime"] = millisToTime(millis());
+  sysinfo["CPU0 reset reason"] = resetReason(rtc_get_reset_reason(0));
+  sysinfo["CPU1 reset reason"] = resetReason(rtc_get_reset_reason(1));
   sysinfo["MQTT"] = (mqtt.isConnected() ? "Connected" : "Disconnected (" + String(mqtt.state()) + ")");
-  sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + " of " + String(formatFileSize(FILESYSTEM.totalBytes())) + " used (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
-  sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+  sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + "/" + String(formatFileSize(FILESYSTEM.totalBytes())) + " (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
+  sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + "/" + String(formatFileSize(SD.totalBytes())) + " (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
   sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
   if (WiFi.getMode() == WIFI_STA)
   {
@@ -345,12 +349,12 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
         audio.stopSong();
         audio.connecttoFS(SD, filename);
       }
-      if(doc.containsKey("stop"))
+      if (doc.containsKey("stop"))
       {
         audio.stopSong();
         status = "Stop";
       }
-      if(doc.containsKey("status"))
+      if (doc.containsKey("status"))
       {
         sendData(true);
       }
@@ -823,7 +827,6 @@ void setup()
     initMQTT();
   }
 
-
   logln(F("Setup done."));
   delay(100);
   led.setColor(0, 255, 0); // Green. Ready...
@@ -841,7 +844,7 @@ void loop()
     ESP.restart();
   }
 
-  // send actual system info every x seconds 
+  // send actual system info every x seconds
   // via websocket and MQTT
   if (millis() - lastSysInfoUpdate > SYSINFO_UPDATE_INTERVAL)
   {
