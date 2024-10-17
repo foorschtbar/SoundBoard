@@ -234,9 +234,12 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
         }
 
         footer {
-            a, a:visited {
+
+            a,
+            a:visited {
                 color: #7a7a7a;
             }
+
             a:hover {
                 text-decoration: none;
             }
@@ -290,6 +293,20 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             </p>
         </div>
         <div class="card">
+            <h2>Text-to-Speech</h2>
+            <p>
+                <label for="tts_text">Text</label>
+                <input type="text" name="tts_text" id="json_tts_text" autocomplete="off" placeholder="Text to speak">
+                <select id="json_tts_lang">
+                    <option value="de">German</option>
+                    <option value="en">English</option>
+                </select>
+            </p>
+            <p>
+                <button class="button" data-cmd="tts">Speak</button>
+            </p>
+        </div>
+        <div class="card">
             <h2>Maintenance</h2>
             <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reboot">Reboot</button></p>
             <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
@@ -328,14 +345,14 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                         id="json_start_volume" autocomplete='off' placeholder='Start volume'></div>
                 <div class="row"><label for="balance">Start balance</label><input type='text' name='balance'
                         id="json_start_balance" autocomplete='off' placeholder='Start balance'></div>
-                        <br />
-                <input type="button" data-cmd="settingssave" class="button confirm showLoader"
-                        value='Save and Reboot'>
+                <br />
+                <input type="button" data-cmd="settingssave" class="button confirm showLoader" value='Save and Reboot'>
             </form>
         </div>
     </div>
     <footer>
-        <p>&copy; 2024 <a href="https://github.com/foorschtbar/">foorschtbar</a> - <a href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
+        <p>&copy; 2024 <a href="https://github.com/foorschtbar/">foorschtbar</a> - <a
+                href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
     </footer>
     <div id="overlay" class="overlay"></div>
     <div id="loader" class="loader">
@@ -351,6 +368,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
         </div>
     </div>
     <script>
+        var modalLoader = false;
         const cookiename = "overwrite-host";
         let host = window.location.host;
         if (document.cookie.split(';').filter((item) => item.trim().startsWith(cookiename + '=')).length) {
@@ -404,9 +422,9 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                         //console.log(event)
                         const cmd = event.target.getAttribute('data-cmd');
                         const value = event.target.getAttribute("data-value")
-                        
+
                         // skip if no command is set
-                        if(cmd == null) {
+                        if (cmd == null) {
                             return;
                         }
 
@@ -435,7 +453,11 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
 
                                     var json = JSON.stringify(data);
                                     console.log(json);
+                                    modalLoader = true;
                                     websocket.send(json);
+                                    break;
+                                case 'tts':
+                                    websocket.send(`{"tts": "${document.getElementById("json_tts_text").value}", "lang": "${document.getElementById('json_tts_lang').value}"}`);
                                     break;
                                 default:
                                     websocket.send(`{"${cmd}": "${value}"}`);
@@ -498,6 +520,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
             var loaderCloseBtn = document.querySelectorAll('#loader_close button');
             loaderCloseBtn.forEach((btn) => {
                 btn.addEventListener('click', () => {
+                    modalLoader = false;
                     hideLoader();
                 });
             });
@@ -516,7 +539,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                     }
 
                     // check file extension
-                    if(event.target.id === 'fwupdate') {
+                    if (event.target.id === 'fwupdate') {
                         const allowedExtensions = ['bin'];
                         const fileExtension = file.name.split('.').pop();
                         if (!allowedExtensions.includes(fileExtension)) {
@@ -565,6 +588,7 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
                                     } else {
                                         document.getElementById('loader_msg').innerHTML = prefix + 'complete';
                                         getData();
+                                        modalLoader = false;
                                     }
                                 } else {
                                     document.getElementById('loader_msg').innerHTML = prefix + 'failed';
@@ -579,8 +603,8 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
 
                     const formData = new FormData();
                     formData.append('file', file);
-
                     showLoader();
+                    modalLoader = true;
                     xhr.send(formData);
                 });
             }
@@ -595,8 +619,12 @@ const char index_html[] PROGMEM = R"=====(<!DOCTYPE HTML>
         }
 
         function hideLoader() {
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('loader').style.display = 'none';
+            if (modalLoader) {
+                return;
+            } else {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('loader').style.display = 'none';
+            }
         }
 
         function showLoaderCloseBtn() {

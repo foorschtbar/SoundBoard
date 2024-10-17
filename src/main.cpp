@@ -354,6 +354,15 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
         audio.stopSong();
         status = "Stop";
       }
+      if (doc.containsKey("tts") && doc.containsKey("lang"))
+      {
+        const char *text = doc["tts"].as<const char *>();
+        const char *lang = doc["lang"].as<const char *>();
+
+        logf("TTS (%s): %s\n", lang, text);
+        audio.stopSong();
+        audio.connecttospeech(text, lang);
+      }
       if (doc.containsKey("status"))
       {
         sendData(true);
@@ -400,6 +409,15 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           sendAlert("Formating internal filesystem failed!\n");
         }
       }
+    }
+    else if (doc.containsKey("tts") && doc.containsKey("lang"))
+    {
+      const char *text = doc["tts"].as<const char *>();
+      const char *lang = doc["lang"].as<const char *>();
+
+      logf("TTS (%s): %s\n", lang, text);
+      audio.stopSong();
+      audio.connecttospeech(text, lang);
     }
     else if (doc.containsKey("play"))
     {

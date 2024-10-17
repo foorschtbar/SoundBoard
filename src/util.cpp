@@ -103,7 +103,7 @@ String millisToTime(unsigned long millis)
     unsigned long hours = minutes / 60;
     seconds %= 60;
     minutes %= 60;
-    return (hours < 10 ? "0" + String(hours) : String(hours)) + ":" + (minutes < 10 ? "0" + String(minutes) : String(minutes)) + ":" + String(seconds);
+    return (hours < 10 ? "0" + String(hours) : String(hours)) + ":" + (minutes < 10 ? "0" + String(minutes) : String(minutes)) + ":" + (seconds < 10 ? "0" + String(seconds) : String(seconds));
 }
 
 String resetReason(int reason)
