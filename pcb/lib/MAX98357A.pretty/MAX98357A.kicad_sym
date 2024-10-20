@@ -27,7 +27,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "DEV14809:MODULE_DEV14809"
+		(property "Footprint" "DEV14MAX98357A:MODULE_MAX98357A"
 			(at -0.254 -29.718 0)
 			(effects
 				(font

@@ -1,0 +1,7 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "MAX98357A")(type "KiCad")(uri "${KIPRJMOD}/lib/MAX98357A.pretty")(options "")(descr ""))
+  (lib (name "ESP32-DEVKIT-V1")(type "KiCad")(uri "${KIPRJMOD}/lib/ESP32-DEVKIT-V1.pretty")(options "")(descr ""))
+  (lib (name "SDCardAdapter")(type "KiCad")(uri "${KIPRJMOD}/lib/SDCardAdapter.pretty")(options "")(descr ""))
+  (lib (name "SK6812SIDE")(type "KiCad")(uri "${KIPRJMOD}/lib/SK6812SIDE.pretty")(options "")(descr ""))
+)

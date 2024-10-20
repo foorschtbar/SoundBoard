@@ -246,7 +246,7 @@
 		)
 		(uuid "67fd62b1-8cdc-449d-b2d9-4077c897b9f1")
 	)
-	(model "${KIPRJMOD}/libs/SK6812SIDE.pretty/SK6812SIDE.STEP"
+	(model "${KIPRJMOD}/lib/SK6812SIDE.pretty/SK6812SIDE.STEP"
 		(offset
 			(xyz -0.05 -0.6 0)
 		)
