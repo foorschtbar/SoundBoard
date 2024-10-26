@@ -10,9 +10,11 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 
 ## ToDos
 
+- [ ] Save authentication in cookie/webstore
+- [ ] Add credentials to post requests
 - [x] Improve MQTT reconnection and resubscription
 - [x] Improve MQTT reconnection after boot when no connection is available
-- [ ] Make MQTT status topic more "chatty"
+- [x] Make MQTT status topic more "chatty"
 
 ## Links
 - https://circuitdigest.com/microcontroller-projects/esp32-based-internet-radio-using-max98357a-i2s-amplifier-board
