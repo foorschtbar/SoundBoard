@@ -255,7 +255,7 @@
 
 <body>
     <div class="topnav">
-        <h1>SoundBoard WebUI (<span id="json_hostname_header"></span>)</h1>
+        <h1>SoundBoard WebUI (<span id="json_hostname_header">loading...</span>)</h1>
         <div><svg xmlns="http://www.w3.org/2000/svg" height="1em"
                 viewBox="0 0 512 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
                 <style>
@@ -269,9 +269,9 @@
             </svg><span id="json_status"></span></div>
     </div>
     <div class="content">
-        <div class="card">
+        <div class="card login">
             <h2>Login</h2>
-            <form action="/auth">
+            <form action="/auth" class="login">
                 <div class="row">
                     <label for="username">Username</label>
                     <input type="text" name="username" autocomplete="off" placeholder="Username">
@@ -416,7 +416,7 @@
         }
         function onOpen(event) {
             console.log('Connection opened');
-            // getData();
+            getData();
         }
         function onClose(event) {
             console.log('Connection closed');
@@ -468,7 +468,18 @@
                                         if (xhr.readyState === 4 && xhr.status === 200) {
                                             console.log("Login successful");
                                             // open websocket
-                                            websocket.send('{"getData": true}');
+                                            websocket.send(`{"auth": "${base64}"}`);
+                                            // show all hidden cards
+                                            var cards = document.querySelectorAll('.card.hidden');
+                                            for (let i = 0; i < cards.length; i++) {
+                                                cards[i].classList.remove('hidden');
+                                            }
+                                            // hide login card
+                                            document.querySelector('.login').classList.add('hidden');
+
+
+                                            // get initial data
+                                            getData();
                                         } else if (xhr.readyState === 4 && xhr.status === 401) {
                                             alert('Login failed');
                                         }
@@ -561,6 +572,16 @@
                 btn.addEventListener('click', () => {
                     modalLoader = false;
                     hideLoader();
+                });
+            });
+
+            // react on enter key in login form
+            document.querySelectorAll('.login input').forEach((input) => {
+                input.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        document.querySelector('.login .button').click();
+                    }
                 });
             });
         }

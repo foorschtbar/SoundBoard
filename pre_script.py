@@ -1,21 +1,17 @@
 import os
 import re
-Import("env")
+import gzip
+#Import("env")
 
-print("External script: Updating WebUI...")
+print("External script: Compressing WebUI...")
 
-# Read content
-html = open('./html/index.html', 'r')
-o = html.read()
-indexhtml = o
-html.close()
+# Paths to the original and compressed files
+input_file = 'html/index.html'
+output_file = 'html/index.html.gz'
 
-# HTML content to C++ string
-content = "// WARNING! Do not modify this file, it is auto-generated from index.html at build!\n"
-content += "const char index_html[] PROGMEM = R\"=====(" + indexhtml + ")=====\";"
+# Open the input HTML file and the output gzip file
+with open(input_file, 'rb') as f_in, gzip.open(output_file, 'wb') as f_out:
+    # Compress the HTML content
+    f_out.writelines(f_in)
 
-# Write the content of the file
-webuih = open('./include/index.h', 'w')
-webuih.write(content)
-webuih.close()
 print("External script: Updating WebUI successful!")

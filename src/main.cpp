@@ -10,7 +10,7 @@
 #include <FS.h>
 #include "SingleLED.h"
 #include "util.h"
-#include <index.h>
+// #include <index.h>
 #include <mqtt.h>
 #include "esp32/rom/rtc.h"
 
@@ -52,7 +52,7 @@ MQTT mqtt(espClient);
 // Webserver
 AsyncWebServer server(80);
 AsyncWebSocket websocket("/ws");
-// std::vector<uint32_t> authenticatedClients;
+std::vector<uint32_t> authenticatedClients;
 
 // Variables
 int currentVolume = 0;
@@ -74,6 +74,9 @@ int settings_volume = 5;   // 0-21
 int settings_balance = 0;  // -16 to 16
 bool shouldReboot = false; // flag to use from web update to reboot the ESP
 unsigned long lastSysInfoUpdate = 0;
+
+extern const uint8_t file_index_html_start[] asm("_binary_html_index_html_gz_start");
+extern const uint8_t file_index_html_end[] asm("_binary_html_index_html_gz_end");
 
 void showAction()
 {
@@ -214,25 +217,38 @@ bool checkCredentials(AsyncWebServerRequest *request)
   return false;
 }
 
-// void textAllAuthenticatedClients(const String &message)
-// {
-//   for (uint32_t clientid : authenticatedClients)
-//   {
-//     websocket.text(clientid, message);
-//   }
-// }
+void textAllAuthenticatedClients(const String &message)
+{
+  for (uint32_t clientid : authenticatedClients)
+  {
+    websocket.text(clientid, message);
+  }
+}
 
 void sendStatus(String status, int refresh = 0)
 {
   showAction();
-  websocket.textAll("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
+  textAllAuthenticatedClients("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
   mqtt.publish(MQTT_TOPIC_STATUS, ("{\"status\":\"" + status + "\"}").c_str());
 }
 
 void sendAlert(String alert, int refresh = 0)
 {
   showAction();
-  websocket.textAll("{\"alert\":\"" + alert + "\", \"refresh\":" + String(refresh) + "}");
+  textAllAuthenticatedClients("{\"alert\":\"" + alert + "\", \"refresh\":" + String(refresh) + "}");
+}
+
+void sendUnauthenticatedData(uint32_t clientid)
+{
+  showAction();
+
+  StaticJsonDocument<1000> doc;
+  doc["status"] = "Please login...";
+  doc["hostname_header"] = settings_hostname;
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+  websocket.text(clientid, jsonString);
 }
 
 void sendData(bool shortMsg = false)
@@ -346,8 +362,9 @@ void sendData(bool shortMsg = false)
   // Serialize the JSON document to a string
   String jsonString;
   serializeJson(doc, jsonString);
-  websocket.textAll(jsonString);
-  if (mqtt.isConnected() && shortMsg)
+  textAllAuthenticatedClients(jsonString);
+
+  if (mqtt.isConnected() && shortMsg) // Only short messages are sent to MQTT
   {
     // logf("Sending MQTT status\n");
     // logf("> Length: %i\n", jsonString.length());
@@ -427,7 +444,19 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
   }
 }
 
-void handleWebSocketMessage(/*uint32_t clientid, */ void *arg, uint8_t *data, size_t len)
+bool checkWSAuth(uint32_t clientid)
+{
+  if (std::find(authenticatedClients.begin(), authenticatedClients.end(), clientid) == authenticatedClients.end())
+  {
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+}
+
+void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo *)arg;
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
@@ -439,173 +468,184 @@ void handleWebSocketMessage(/*uint32_t clientid, */ void *arg, uint8_t *data, si
 
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char *)data);
-    /*if (doc.containsKey("auth"))
+    if (doc.containsKey("auth"))
     {
       const char *auth = doc["auth"].as<const char *>();
       // base64 to
       if (BasicAuthHash(settings_username.c_str(), settings_password.c_str()).equalsIgnoreCase(auth))
       {
         logf("Client #%u Authenticated\n", clientid);
+        websocket.text(clientid, "{\"auth_status:\": \"Authentication successful\"}");
         authenticatedClients.push_back(clientid);
       }
       else
       {
         logf("Client ID #%u Not Authenticated\n", clientid);
-        websocket.close(clientid, 4000, "Authentication failed");
+        websocket.text(clientid, "{\"auth_status:\": \"Authentication failed\"}");
         return;
-      }
-    }*/
-
-    if (doc.containsKey("cmd"))
-    {
-      const char *cmd = doc["cmd"].as<const char *>();
-      if (strcmp(cmd, "reboot") == 0)
-      {
-        sendAlert(String("Rebooting..."), 10);
-        shouldReboot = true;
-      }
-      else if (strcmp(cmd, "reset") == 0)
-      {
-        logf("Formating internal filesystem...");
-        if (FILESYSTEM.format())
-        {
-          logf("done!\n");
-          ESP.restart();
-        }
-        else
-        {
-          logf("failed!\n");
-          sendAlert("Formating internal filesystem failed!\n");
-        }
-      }
-    }
-    else if (doc.containsKey("tts") && doc.containsKey("lang"))
-    {
-      const char *text = doc["tts"].as<const char *>();
-      const char *lang = doc["lang"].as<const char *>();
-
-      logf("TTS (%s): %s\n", lang, text);
-      audio.stopSong();
-      audio.connecttospeech(text, lang);
-    }
-    else if (doc.containsKey("play"))
-    {
-      const char *filename = doc["play"].as<const char *>();
-      sendStatus(String("Play ") + String(filename));
-      audio.stopSong();
-      audio.connecttoFS(SD, filename);
-    }
-    else if (doc.containsKey("delete"))
-    {
-      const char *filename = doc["delete"].as<const char *>();
-      sendStatus("Delete " + String(filename));
-      if (SD.remove("/" + String(filename)))
-      {
-        sendStatus("Deleted " + String(filename));
-        sendData();
-      }
-      else
-      {
-        sendAlert("Failed to delete " + String(filename) + "!");
-      }
-    }
-    else if (doc.containsKey("volume"))
-    {
-      currentVolume = doc["volume"].as<int>();
-      sendStatus(String("Volume: " + String(map(currentVolume, 0, 21, 0, 100))) + "%");
-      audio.setVolume(currentVolume);
-    }
-    else if (doc.containsKey("balance"))
-    {
-      currentBalance = doc["balance"].as<int>();
-      sendStatus(String("Balance: ") + String(currentBalance));
-      audio.setBalance(currentBalance);
-    }
-    else if (doc.containsKey("settings"))
-    {
-
-      File file = FILESYSTEM.open("/settings.json", "w");
-      if (!file)
-      {
-        sendAlert(String("Failed to open file for writing!"));
-        logln("Failed to open file for writing");
-        return;
-      }
-
-      // Update current settings variables
-      if (doc["settings"].containsKey("ssid"))
-      {
-        settings_ssid = doc["settings"]["ssid"].as<String>();
-      }
-      // Update PSK only if not the "hidden value" is sent
-      if (doc["settings"].containsKey("psk") && strcmp(doc["settings"]["psk"].as<const char *>(), PASSWORD_HIDDEN) != 0)
-      {
-        settings_psk = doc["settings"]["psk"].as<String>();
-      }
-      if (doc["settings"].containsKey("hostname"))
-      {
-        settings_hostname = doc["settings"]["hostname"].as<String>();
-      }
-      if (doc["settings"].containsKey("username"))
-      {
-        settings_username = doc["settings"]["username"].as<String>();
-      }
-      if (doc["settings"].containsKey("password") && strcmp(doc["settings"]["password"].as<const char *>(), PASSWORD_HIDDEN) != 0)
-      {
-        settings_password = doc["settings"]["password"].as<String>();
-      }
-      if (doc["settings"].containsKey("volume"))
-      {
-        int temp = doc["settings"]["volume"].as<int>();
-        if (temp >= 0 && temp <= 21)
-        {
-          settings_volume = temp;
-        }
-      }
-      if (doc["settings"].containsKey("balance"))
-      {
-        int temp = doc["settings"]["balance"].as<int>();
-        if (temp >= -16 && temp <= 16)
-        {
-          settings_balance = temp;
-        }
-      }
-      if (doc["settings"].containsKey("mqtt_broker"))
-      {
-        settings_mqtt_broker = doc["settings"]["mqtt_broker"].as<String>();
-      }
-      if (doc["settings"].containsKey("mqtt_port"))
-      {
-        settings_mqtt_port = doc["settings"]["mqtt_port"].as<String>();
-      }
-      if (doc["settings"].containsKey("mqtt_user"))
-      {
-        settings_mqtt_user = doc["settings"]["mqtt_user"].as<String>();
-      }
-      if (doc["settings"].containsKey("mqtt_pass") && strcmp(doc["settings"]["mqtt_pass"].as<const char *>(), PASSWORD_HIDDEN) != 0)
-      {
-        settings_mqtt_pass = doc["settings"]["mqtt_pass"].as<String>();
-      }
-      if (doc["settings"].containsKey("mqtt_prefix"))
-      {
-        settings_mqtt_prefix = doc["settings"]["mqtt_prefix"].as<String>();
-      }
-
-      writeSettings();
-
-      if (doc.containsKey("reboot"))
-      {
-        sendAlert(String("Settings saved. Rebooting..."), 10);
-        shouldReboot = true;
-      }
-      else
-      {
-        sendAlert(String("Settings saved."));
       }
     }
     else if (doc.containsKey("getData"))
     {
-      sendData();
+      if (checkWSAuth(clientid)) {
+        // Send full data if authenticated
+        sendData();
+      } else {
+        // Send short data if not authenticated
+        sendUnauthenticatedData(clientid);
+      }
+    }
+
+    // only authenticated clients can send commands
+    if(checkWSAuth(clientid))
+    {
+      if (doc.containsKey("cmd"))
+      {
+        const char *cmd = doc["cmd"].as<const char *>();
+        if (strcmp(cmd, "reboot") == 0)
+        {
+          sendAlert(String("Rebooting..."), 10);
+          shouldReboot = true;
+        }
+        else if (strcmp(cmd, "reset") == 0)
+        {
+          logf("Formating internal filesystem...");
+          if (FILESYSTEM.format())
+          {
+            logf("done!\n");
+            ESP.restart();
+          }
+          else
+          {
+            logf("failed!\n");
+            sendAlert("Formating internal filesystem failed!\n");
+          }
+        }
+      }
+      else if (doc.containsKey("tts") && doc.containsKey("lang"))
+      {
+        const char *text = doc["tts"].as<const char *>();
+        const char *lang = doc["lang"].as<const char *>();
+
+        logf("TTS (%s): %s\n", lang, text);
+        audio.stopSong();
+        audio.connecttospeech(text, lang);
+      }
+      else if (doc.containsKey("play"))
+      {
+        const char *filename = doc["play"].as<const char *>();
+        sendStatus(String("Play ") + String(filename));
+        audio.stopSong();
+        audio.connecttoFS(SD, filename);
+      }
+      else if (doc.containsKey("delete"))
+      {
+        const char *filename = doc["delete"].as<const char *>();
+        sendStatus("Delete " + String(filename));
+        if (SD.remove("/" + String(filename)))
+        {
+          sendStatus("Deleted " + String(filename));
+          sendData();
+        }
+        else
+        {
+          sendAlert("Failed to delete " + String(filename) + "!");
+        }
+      }
+      else if (doc.containsKey("volume"))
+      {
+        currentVolume = doc["volume"].as<int>();
+        sendStatus(String("Volume: " + String(map(currentVolume, 0, 21, 0, 100))) + "%");
+        audio.setVolume(currentVolume);
+      }
+      else if (doc.containsKey("balance"))
+      {
+        currentBalance = doc["balance"].as<int>();
+        sendStatus(String("Balance: ") + String(currentBalance));
+        audio.setBalance(currentBalance);
+      }
+      else if (doc.containsKey("settings"))
+      {
+
+        File file = FILESYSTEM.open("/settings.json", "w");
+        if (!file)
+        {
+          sendAlert(String("Failed to open file for writing!"));
+          logln("Failed to open file for writing");
+          return;
+        }
+
+        // Update current settings variables
+        if (doc["settings"].containsKey("ssid"))
+        {
+          settings_ssid = doc["settings"]["ssid"].as<String>();
+        }
+        // Update PSK only if not the "hidden value" is sent
+        if (doc["settings"].containsKey("psk") && strcmp(doc["settings"]["psk"].as<const char *>(), PASSWORD_HIDDEN) != 0)
+        {
+          settings_psk = doc["settings"]["psk"].as<String>();
+        }
+        if (doc["settings"].containsKey("hostname"))
+        {
+          settings_hostname = doc["settings"]["hostname"].as<String>();
+        }
+        if (doc["settings"].containsKey("username"))
+        {
+          settings_username = doc["settings"]["username"].as<String>();
+        }
+        if (doc["settings"].containsKey("password") && strcmp(doc["settings"]["password"].as<const char *>(), PASSWORD_HIDDEN) != 0)
+        {
+          settings_password = doc["settings"]["password"].as<String>();
+        }
+        if (doc["settings"].containsKey("volume"))
+        {
+          int temp = doc["settings"]["volume"].as<int>();
+          if (temp >= 0 && temp <= 21)
+          {
+            settings_volume = temp;
+          }
+        }
+        if (doc["settings"].containsKey("balance"))
+        {
+          int temp = doc["settings"]["balance"].as<int>();
+          if (temp >= -16 && temp <= 16)
+          {
+            settings_balance = temp;
+          }
+        }
+        if (doc["settings"].containsKey("mqtt_broker"))
+        {
+          settings_mqtt_broker = doc["settings"]["mqtt_broker"].as<String>();
+        }
+        if (doc["settings"].containsKey("mqtt_port"))
+        {
+          settings_mqtt_port = doc["settings"]["mqtt_port"].as<String>();
+        }
+        if (doc["settings"].containsKey("mqtt_user"))
+        {
+          settings_mqtt_user = doc["settings"]["mqtt_user"].as<String>();
+        }
+        if (doc["settings"].containsKey("mqtt_pass") && strcmp(doc["settings"]["mqtt_pass"].as<const char *>(), PASSWORD_HIDDEN) != 0)
+        {
+          settings_mqtt_pass = doc["settings"]["mqtt_pass"].as<String>();
+        }
+        if (doc["settings"].containsKey("mqtt_prefix"))
+        {
+          settings_mqtt_prefix = doc["settings"]["mqtt_prefix"].as<String>();
+        }
+
+        writeSettings();
+
+        if (doc.containsKey("reboot"))
+        {
+          sendAlert(String("Settings saved. Rebooting..."), 10);
+          shouldReboot = true;
+        }
+        else
+        {
+          sendAlert(String("Settings saved."));
+        }
+      }
     }
   }
 }
@@ -638,10 +678,10 @@ void onWSEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     break;
   case WS_EVT_DISCONNECT:
     logf("WebSocket client #%u disconnected\n", client->id());
-    // authenticatedClients.erase(std::remove(authenticatedClients.begin(), authenticatedClients.end(), client->id()), authenticatedClients.end());
+    authenticatedClients.erase(std::remove(authenticatedClients.begin(), authenticatedClients.end(), client->id()), authenticatedClients.end());
     break;
   case WS_EVT_DATA:
-    handleWebSocketMessage(/*client->id(), */ arg, data, len);
+    handleWebSocketMessage(client->id(), arg, data, len);
     break;
   case WS_EVT_PONG:
   case WS_EVT_ERROR:
@@ -743,11 +783,48 @@ void handleUpdate(AsyncWebServerRequest *request, const String &filename, size_t
   }
 }
 
-void handleRoot(AsyncWebServerRequest *request)
+void responseBinaryDataWithETagCache(AsyncWebServerRequest *request, const String &contentType, const String &contentEncoding, const uint8_t *content, size_t len)
 {
-  logln(F("Displaying index.html"));
+  auto md5 = MD5Builder();
+  md5.begin();
+  md5.add(const_cast<uint8_t *>(content), len);
+  md5.calculate();
+
+  String expectedEtag;
+  expectedEtag = "\"";
+  expectedEtag += md5.toString();
+  expectedEtag += "\"";
+
+  bool eTagMatch = false;
+  if (request->hasHeader("If-None-Match"))
+  {
+    const AsyncWebHeader *h = request->getHeader("If-None-Match");
+    eTagMatch = h->value().equals(expectedEtag);
+  }
+
+  logf("Serving %s (%s) %s\n", request->url().c_str(), contentType.c_str(), eTagMatch ? "from cache" : "");
   showAction();
-  request->send(200, "text/html", index_html);
+
+  // begin response 200 or 304
+  AsyncWebServerResponse *response;
+  if (eTagMatch)
+  {
+    response = request->beginResponse(304);
+  }
+  else
+  {
+    response = request->beginResponse(200, contentType, content, len);
+    if (contentEncoding.length() > 0)
+    {
+      response->addHeader("Content-Encoding", contentEncoding);
+    }
+  }
+
+  // HTTP requires cache headers in 200 and 304 to be identical
+  response->addHeader("Cache-Control", "public, must-revalidate");
+  response->addHeader("ETag", expectedEtag);
+
+  request->send(response);
 }
 
 void handleNotFound(AsyncWebServerRequest *request)
@@ -893,7 +970,11 @@ void setup()
   }
 
   // WebServer
-  server.on("/", handleRoot);
+  server.on("/", HTTP_GET, [&](AsyncWebServerRequest *request)
+            { responseBinaryDataWithETagCache(request, "text/html", "gzip", file_index_html_start, file_index_html_end - file_index_html_start); });
+
+  server.on("/index.html", HTTP_GET, [&](AsyncWebServerRequest *request)
+            { responseBinaryDataWithETagCache(request, "text/html", "gzip", file_index_html_start, file_index_html_end - file_index_html_start); });
 
   // https://github.com/AR-D-R/ESP32-OTA-File-management/blob/main/OTA_file_management.ino
   server.on(
