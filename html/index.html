@@ -159,9 +159,13 @@
             right: 0;
             bottom: 0;
             background-color: rgba(0, 0, 0, 0.5);
-            display: none;
+            display: block;
             z-index: 1;
             display: block;
+
+            &.hidden {
+                display: none;
+            }
         }
 
         .popup {
@@ -175,6 +179,10 @@
             text-align: center;
             display: block;
             z-index: 2;
+
+            &.hidden {
+                display: none;
+            }
 
             &.error,
             &.success {
@@ -199,14 +207,29 @@
 
             }
 
+            &.closeable {
+                & .close {
+                    display: block !important;
+                }
+            }
+
+            &.loading {
+                & .lds-ring {
+                    display: inline-block !important;
+                }
+            }
+
             & .msg,
             & .close {
                 padding-top: 20px;
             }
 
+            & .close {
+                display: none;
+            }
 
             & .lds-ring {
-                display: inline-block;
+                display: none;
                 position: relative;
                 width: 80px;
                 height: 80px;
@@ -307,7 +330,7 @@
                 <path
                     d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z">
                 </path>
-            </svg><span id="json_status"></span></div>
+            </svg><span id="json_status">---</span></div>
     </div>
     <div class="content">
         <div class="card">
@@ -419,7 +442,7 @@
                 href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
     </footer>
     <div class="overlay"></div>
-    <div class="popup">
+    <div class="popup loading">
         <div class="lds-ring">
             <div></div>
             <div></div>
@@ -428,7 +451,7 @@
         </div>
         <div class="icon"></div>
         <div class="msg">Loading...</div>
-        <div class="close" style="display:none">
+        <div class="close">
             <button class="button">Close</button>
         </div>
     </div>
@@ -530,18 +553,23 @@
                     }
                     // hide login card
                     document.querySelector('.card.withoutlogin').classList.add('hidden');
+                    
 
-
+                    // clear login form
+                    var form = document.querySelector('#login');
+                    form.elements['username'].value = '';
+                    form.elements['password'].value = '';
+                    
                     // get initial data
                     getData();
 
                 } else if (xhr.readyState === 4 && xhr.status === 401) {
                     clearAuthCookie();
-                    if (!preauth) {
-                        showPopupMessage('Login failed', {style: 'error', close: true, modal: true });
+                    if(preauth) {
+                        getData();
                     } else {
-                        hidePopup();
-                    }
+                        showPopupMessage('Login failed', {style: 'error', close: true, modal: true });
+                    } 
 
                 }
             };
@@ -682,6 +710,17 @@
                     }
                 });
             });
+
+            // react to escape key
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    if(document.querySelector('.popup ').style.display !== 'none') {
+                        modalPopup = false;
+                        hidePopup();
+                    }
+                    hidePopup();
+                }
+            });
         }
 
         function initPostHook() {
@@ -770,35 +809,40 @@
         }
 
         function showPopupMessage(msg = "Loading...", {style = "loading", close = false, modal = false } = {}) {
-            document.querySelector('.overlay').style.display = 'block';
-            document.querySelector('.popup').style.display = 'block';
+            var popup = document.querySelector('.popup');
+            var overlay = document.querySelector('.overlay');
+            popup.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+
+            // set message
             document.querySelector('.popup .msg').innerHTML = msg;
+
+            // set style/icon
             switch (style) {
                 case 'loading':
-                    document.querySelector('.popup .lds-ring').style.display = 'inline-block';
-                    document.querySelector('.popup').classList.remove('error');
-                    document.querySelector('.popup').classList.remove('success');
+                    popup.classList.add('loading');
+                    popup.classList.remove('error', 'success');
                     break;
                 case 'success':
-                    document.querySelector('.popup .lds-ring').style.display = 'none';
-                    document.querySelector('.popup').classList.add('success');
-                    document.querySelector('.popup').classList.remove('error');
+                    popup.classList.remove('loading');
+                    popup.classList.add('success');
+                    popup.classList.remove('error');
                     close = true;
                     modal = true;
                     break;
                 case 'error':
-                    document.querySelector('.popup .lds-ring').style.display = 'none';
-                    document.querySelector('.popup').classList.add('error');
-                    document.querySelector('.popup').classList.remove('success');
+                    popup.classList.remove('loading');
+                    popup.classList.add('error');
+                    popup.classList.remove('success');
                     close = true;
                     modal = true;
                     break;
             }
             if (close) {
-                document.querySelector('.popup .close').style.display = 'block';
-                document.querySelector('.popup .lds-ring').style.display = 'none';
+                popup.classList.add('closeable');
+                popup.classList.remove('loading');
             } else {
-                document.querySelector('.popup .close').style.display = 'none';
+                popup.classList.remove('closeable');
             }
             if (modal) {
                 modalPopup = true;
@@ -809,8 +853,8 @@
 
         function hidePopup() {
             if (!modalPopup) {
-                document.querySelector('.overlay').style.display = 'none';
-                document.querySelector('.popup').style.display = 'none';
+                document.querySelector('.overlay').classList.add('hidden');
+                document.querySelector('.popup').classList.add('hidden');
             }
         }
 

@@ -286,7 +286,6 @@ void sendData(sendDataType type)
     sysinfo["Flash Chip Size"] = ESP.getFlashChipSize();
     sysinfo["Compiled"] = String(__DATE__) + " " + String(__TIME__);
 
-    doc["status"] = "Reeeaaaady...";
     doc["hostname_header"] = settings_hostname;
   }
 
@@ -331,6 +330,7 @@ void sendData(sendDataType type)
     {
       doc["password"] = "";
     }
+    doc["status"] = "Reeeaaaady...";
 
     // Filelist
     JsonArray filesArray = doc.createNestedArray("fs");
