@@ -38,17 +38,17 @@
             right: 0;
             top: 0;
             height: 75px;
+
+            &>div>svg {
+                padding-right: 5px;
+                position: relative;
+                top: 3px;
+            }
         }
 
         #json_status {
             font-size: 1rem;
             color: #fff;
-        }
-
-        .topnav>div>svg {
-            padding-right: 5px;
-            position: relative;
-            top: 3px;
         }
 
         body {
@@ -73,9 +73,17 @@
                 display: none;
             }
 
-            .hover {
-                background-color: #f0f0f0d7;
-                cursor: pointer;
+            .dropzone {
+                padding: 3px;
+                outline: dashed 3px #ccc;
+                transition: .1s linear;
+
+                &.hover {
+                    cursor: pointer;
+                    outline: dashed 5px #0f8b8d;
+                    border-radius: 10px;
+                    background-color: #f0f0f0;
+                }
             }
         }
 
@@ -96,59 +104,33 @@
             user-select: none;
             -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
             margin: 5px 0 0 5px;
+
+            &:hover {
+                background-color: #13adb0
+            }
+
+            &:active {
+                background-color: #0f8b8d;
+                box-shadow: 2 2px #CDCDCD;
+            }
+
+            &.small {
+                padding: 2px 10px;
+                font-size: 12px;
+            }
+
+            &.red {
+                background-color: #d9534f;
+            }
         }
 
-        .button:hover {
-            background-color: #13adb0
-        }
 
-        .button:active {
-            background-color: #0f8b8d;
-            box-shadow: 2 2px #CDCDCD;
-        }
-
-        .button.small {
-            padding: 2px 10px;
-            font-size: 12px;
-        }
-
-        .button.red {
-            background-color: #d9534f;
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 1;
-            display: block;
-        }
-
-        .loader {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            display: block;
-            z-index: 2;
-        }
 
         input[type=file] {
             display: none;
         }
 
-        #loader_msg,
-        #loader_close {
-            padding-top: 20px;
-        }
+
 
         .row {
             text-align: left;
@@ -170,36 +152,91 @@
             box-sizing: border-box;
         }
 
-        .lds-ring {
-            display: inline-block;
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-
-        .lds-ring div {
-            box-sizing: border-box;
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1;
             display: block;
-            position: absolute;
-            width: 64px;
-            height: 64px;
-            margin: 8px;
-            border: 8px solid #000;
-            border-radius: 50%;
-            animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-            border-color: #000 transparent transparent transparent;
         }
 
-        .lds-ring div:nth-child(1) {
-            animation-delay: -0.45s;
-        }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: block;
+            z-index: 2;
 
-        .lds-ring div:nth-child(2) {
-            animation-delay: -0.3s;
-        }
+            &.error,
+            &.success {
+                & .icon {
+                    width: 50px;
+                    height: 50px;
+                    margin: 0 auto;
+                    margin-bottom: 10px;
+                }
+            }
 
-        .lds-ring div:nth-child(3) {
-            animation-delay: -0.15s;
+            &.error {
+                & .icon {
+                    content: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBkPSJNMjU2IDMyYzE0LjIgMCAyNy4zIDcuNSAzNC41IDE5LjhsMjE2IDM2OGM3LjMgMTIuNCA3LjMgMjcuNyAuMiA0MC4xUzQ4Ni4zIDQ4MCA0NzIgNDgwTDQwIDQ4MGMtMTQuMyAwLTI3LjYtNy43LTM0LjctMjAuMXMtNy0yNy44IC4yLTQwLjFsMjE2LTM2OEMyMjguNyAzOS41IDI0MS44IDMyIDI1NiAzMnptMCAxMjhjLTEzLjMgMC0yNCAxMC43LTI0IDI0bDAgMTEyYzAgMTMuMyAxMC43IDI0IDI0IDI0czI0LTEwLjcgMjQtMjRsMC0xMTJjMC0xMy4zLTEwLjctMjQtMjQtMjR6bTMyIDIyNGEzMiAzMiAwIDEgMCAtNjQgMCAzMiAzMiAwIDEgMCA2NCAweiIvPjwvc3ZnPg==");
+                }
+            }
+
+            &.success {
+                & .icon {
+                    content: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBkPSJNMjU2IDQ4YTIwOCAyMDggMCAxIDEgMCA0MTYgMjA4IDIwOCAwIDEgMSAwLTQxNnptMCA0NjRBMjU2IDI1NiAwIDEgMCAyNTYgMGEyNTYgMjU2IDAgMSAwIDAgNTEyek0zNjkgMjA5YzkuNC05LjQgOS40LTI0LjYgMC0zMy45cy0yNC42LTkuNC0zMy45IDBsLTExMSAxMTEtNDctNDdjLTkuNC05LjQtMjQuNi05LjQtMzMuOSAwcy05LjQgMjQuNiAwIDMzLjlsNjQgNjRjOS40IDkuNCAyNC42IDkuNCAzMy45IDBMMzY5IDIwOXoiLz48L3N2Zz4=")
+                }
+
+            }
+
+            & .msg,
+            & .close {
+                padding-top: 20px;
+            }
+
+
+            & .lds-ring {
+                display: inline-block;
+                position: relative;
+                width: 80px;
+                height: 80px;
+
+                & div {
+                    box-sizing: border-box;
+                    display: block;
+                    position: absolute;
+                    width: 64px;
+                    height: 64px;
+                    margin: 8px;
+                    border: 8px solid #000;
+                    border-radius: 50%;
+                    animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+                    border-color: #000 transparent transparent transparent;
+                }
+
+
+                & div:nth-child(1) {
+                    animation-delay: -0.45s;
+                }
+
+                & div:nth-child(2) {
+                    animation-delay: -0.3s;
+                }
+
+                & div:nth-child(3) {
+                    animation-delay: -0.15s;
+                }
+            }
         }
 
         @keyframes lds-ring {
@@ -212,28 +249,32 @@
             }
         }
 
+
+
+
         .table {
             display: table;
             width: 100%;
             text-align: center;
-        }
 
-        .table>div {
-            display: table-row;
-        }
 
-        .table>div>div {
-            display: table-cell;
-        }
+            &>div {
+                display: table-row;
+            }
 
-        .table>div>div:first-child {
-            font-weight: bold;
-            text-align: left;
-        }
+            &>div>div {
+                display: table-cell;
+            }
 
-        .table>div>div:last-child {
-            text-align: right;
+            &>div>div:first-child {
+                font-weight: bold;
+                text-align: left;
+            }
 
+            &>div>div:last-child {
+                text-align: right;
+
+            }
         }
 
         footer {
@@ -269,9 +310,13 @@
             </svg><span id="json_status"></span></div>
     </div>
     <div class="content">
-        <div class="card login">
+        <div class="card">
+            <h2>System</h2>
+            <div id="json_sysinfo"></div>
+        </div>
+        <div class="card withoutlogin">
             <h2>Login</h2>
-            <form action="/auth" class="login">
+            <form action="/auth" id="login">
                 <div class="row">
                     <label for="username">Username</label>
                     <input type="text" name="username" autocomplete="off" placeholder="Username">
@@ -283,22 +328,18 @@
                 <input type="button" data-cmd="login" class="button" value='Login'>
             </form>
         </div>
-        <div class="card hidden">
-            <h2>System</h2>
-            <div id="json_sysinfo"></div>
-        </div>
-        <div class="card hidden">
+        <div class="card needlogin hidden">
             <h2>Volume</h2>
             <input type="range" id="json_cur_volume" name="volume" min="0" max="21" step="1" value="0">
             <h2>Balance</h2>
             <input type="range" id="json_cur_balance" name="balance" min="-16" max="16" step="1" value="0">
         </div>
-        <div class="card hidden">
+        <div class="card needlogin hidden">
             <h2>Filesystem (external)</h2>
             <p>
             <div id="json_fs_info"></div>
             </p>
-            <div id="json_fs"></div>
+            <div id="json_fs" class="dropzone"></div>
             <p>
             <form method="POST" action="/upload" enctype="multipart/form-data">
                 <input type="file" name="data" id="fileupload" required />
@@ -309,7 +350,7 @@
             </form>
             </p>
         </div>
-        <div class="card hidden">
+        <div class="card needlogin hidden">
             <h2>Text-to-Speech</h2>
             <p>
                 <label for="tts_text">Text</label>
@@ -323,10 +364,10 @@
                 <button class="button" data-cmd="tts">Speak</button>
             </p>
         </div>
-        <div class="card hidden">
+        <div class="card needlogin hidden">
             <h2>Maintenance</h2>
-            <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reboot">Reboot</button></p>
-            <p><button class="button confirm showLoader" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
+            <p><button class="button confirm showPopup" data-cmd="cmd" data-value="reboot">Reboot</button></p>
+            <p><button class="button confirm showPopup" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
             <p>
             <form method='POST' action='/update' enctype='multipart/form-data'>
                 <input type='file' name='update' id='fwupdate' required>
@@ -335,8 +376,9 @@
                 <input type='submit' class="button" value='Run Update' style="display:none;">
             </form>
             </p>
+            <p><button class="button showPopup" data-cmd="logout">Logout</button></p>
         </div>
-        <div class="card hidden">
+        <div class="card needlogin hidden">
             <h2>Settings</h2>
             <form id="settings">
                 <h3>Network</h3>
@@ -346,6 +388,11 @@
                         autocomplete='off' placeholder='PSK'></div>
                 <div class="row"><label for="hostname">Hostname</label><input type='text' name='hostname'
                         id="json_hostname" autocomplete='off' placeholder='Hostname'></div>
+                <h3>Authentication</h3>
+                <div class="row"><label for="username">Username</label><input type='text' name='username'
+                        id="json_username" autocomplete='off' placeholder='Username'></div>
+                <div class="row"><label for="password">Password</label><input type='password' name='password'
+                        id="json_password" autocomplete='off' placeholder='Password'></div>
                 <h3>MQTT</h3>
                 <div class="row"><label for="mqtt_broker">MQTT Broker</label><input type='text' name='mqtt_broker'
                         id="json_mqtt_broker" autocomplete='off' placeholder='MQTT Broker'></div>
@@ -363,7 +410,7 @@
                 <div class="row"><label for="balance">Start balance</label><input type='text' name='balance'
                         id="json_start_balance" autocomplete='off' placeholder='Start balance'></div>
                 <br />
-                <input type="button" data-cmd="settingssave" class="button confirm showLoader" value='Save and Reboot'>
+                <input type="button" data-cmd="settingssave" class="button confirm showPopup" value='Save and Reboot'>
             </form>
         </div>
     </div>
@@ -371,21 +418,22 @@
         <p>&copy; 2024 <a href="https://github.com/foorschtbar/">foorschtbar</a> - <a
                 href="https://github.com/foorschtbar/SoundBoard">SoundBoard on GitHub</a></p>
     </footer>
-    <div id="overlay" class="overlay" style="display: none;"></div>
-    <div id="loader" class="loader" style="display: none;">
+    <div class="overlay"></div>
+    <div class="popup">
         <div class="lds-ring">
             <div></div>
             <div></div>
             <div></div>
             <div></div>
         </div>
-        <div id="loader_msg">Loading...</div>
-        <div id="loader_close" style="display:none">
+        <div class="icon"></div>
+        <div class="msg">Loading...</div>
+        <div class="close" style="display:none">
             <button class="button">Close</button>
         </div>
     </div>
     <script>
-        var modalLoader = false;
+        var modalPopup = false;
         const cookiename = "overwrite-host";
         let host = window.location.host;
         if (document.cookie.split(';').filter((item) => item.trim().startsWith(cookiename + '=')).length) {
@@ -416,7 +464,9 @@
         }
         function onOpen(event) {
             console.log('Connection opened');
-            getData();
+            if (!preAuth()) {
+                getData();
+            }
         }
         function onClose(event) {
             console.log('Connection closed');
@@ -427,8 +477,75 @@
         function onMessage(event) {
             const response = JSON.parse(event.data);
             if (processResponse(response)) {
-                hideLoader();
+                hidePopup();
             }
+        }
+
+        function preAuth() {
+            console.log('Checking for auth cookie');
+            // check if auth cookie is set
+            if (document.cookie.split(';').filter((item) => item.trim().startsWith('auth=')).length) {
+                // get auth cookie via regex to keep the value includig = sign
+                const auth = document.cookie.match(/auth=([^;]+)/)[1];
+                login(auth, true);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function logout() {
+            console.log('Logging out');
+            clearAuthCookie();
+            document.querySelector('.card.withoutlogin').classList.remove('hidden');
+            websocket.send('{"logout": true}');
+            hidePopup();
+        }
+
+        function clearAuthCookie() {
+            document.cookie = 'auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.querySelectorAll('.card.needlogin').forEach((card) => {
+                card.classList.add('hidden');
+            });
+        }
+
+        function login(base64, preauth = false) {
+
+            var xhr = new XMLHttpRequest();
+            // Login action url
+            var action = document.querySelector("#login").action;
+            xhr.open('GET', action, true);
+            xhr.setRequestHeader('Authorization', `Basic ${base64}`);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.log("Login successful");
+                    // set auth cookie for future requests (session cookie)
+                    document.cookie = `auth=${base64}`;
+                    // open websocket
+                    websocket.send(`{"login": "${base64}"}`);
+                    // show all hidden cards
+                    var cards = document.querySelectorAll('.card.needlogin');
+                    for (let i = 0; i < cards.length; i++) {
+                        cards[i].classList.remove('hidden');
+                    }
+                    // hide login card
+                    document.querySelector('.card.withoutlogin').classList.add('hidden');
+
+
+                    // get initial data
+                    getData();
+
+                } else if (xhr.readyState === 4 && xhr.status === 401) {
+                    clearAuthCookie();
+                    if (!preauth) {
+                        showPopupMessage('Login failed', {style: 'error', close: true, modal: true });
+                    } else {
+                        hidePopup();
+                    }
+
+                }
+            };
+            xhr.send();
         }
 
         function initButtons() {
@@ -436,9 +553,10 @@
             for (let i = 0; i < btns.length; i++) {
                 btns[i].addEventListener('click', (event) => {
                     if (event.target.classList.contains('button')) {
-                        //console.log(event)
                         const cmd = event.target.getAttribute('data-cmd');
                         const value = event.target.getAttribute("data-value")
+
+                        console.log(`Button clicked: '${cmd}' with value '${value}'`);
 
                         // skip if no command is set
                         if (cmd == null) {
@@ -450,42 +568,24 @@
                             dosend = confirm('Are you sure?');
                         }
                         if (dosend) {
-                            if (event.target.classList.contains('showLoader')) {
-                                showLoader();
+                            if (event.target.classList.contains('showPopup')) {
+                                showPopupMessage();
                             }
                             switch (cmd) {
                                 case 'login':
-                                    var form = event.target.closest('form');
+                                    var form = document.querySelector('#login');
 
                                     // do basic auth with username and password
                                     var username = form.elements['username'].value;
                                     var password = form.elements['password'].value;
                                     var base64 = btoa(unescape(encodeURIComponent(`${username}:${password}`)));
-                                    var xhr = new XMLHttpRequest();
-                                    xhr.open('GET', form.action, true);
-                                    xhr.setRequestHeader('Authorization', `Basic ${base64}`);
-                                    xhr.onreadystatechange = function () {
-                                        if (xhr.readyState === 4 && xhr.status === 200) {
-                                            console.log("Login successful");
-                                            // open websocket
-                                            websocket.send(`{"auth": "${base64}"}`);
-                                            // show all hidden cards
-                                            var cards = document.querySelectorAll('.card.hidden');
-                                            for (let i = 0; i < cards.length; i++) {
-                                                cards[i].classList.remove('hidden');
-                                            }
-                                            // hide login card
-                                            document.querySelector('.login').classList.add('hidden');
+
+                                    login(base64);
 
 
-                                            // get initial data
-                                            getData();
-                                        } else if (xhr.readyState === 4 && xhr.status === 401) {
-                                            alert('Login failed');
-                                        }
-                                    };
-                                    xhr.send();
-
+                                    break;
+                                case 'logout':
+                                    logout();
                                     break;
                                 case 'settingssave':
                                     var form = document.getElementById('settings');
@@ -503,7 +603,7 @@
 
                                     var json = JSON.stringify(data);
                                     console.log(json);
-                                    modalLoader = true;
+                                    modalPopup = true;
                                     websocket.send(json);
                                     break;
                                 case 'tts':
@@ -558,29 +658,27 @@
             });
 
 
-            var sliders = document.querySelectorAll('input[type="range"]');
-            sliders.forEach((slider) => {
+            document.querySelectorAll('input[type="range"]').forEach((slider) => {
                 slider.addEventListener('input', (event) => {
-                    console.log(event.target);
+                    // console.log(event.target);
                     const { name, value } = event.target;
                     websocket.send(`{${name}: ${value}}`);
                 });
             });
 
-            var loaderCloseBtn = document.querySelectorAll('#loader_close button');
-            loaderCloseBtn.forEach((btn) => {
+            document.querySelectorAll('.popup .close button').forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    modalLoader = false;
-                    hideLoader();
+                    modalPopup = false;
+                    hidePopup();
                 });
             });
 
             // react on enter key in login form
-            document.querySelectorAll('.login input').forEach((input) => {
+            document.querySelectorAll('#login input').forEach((input) => {
                 input.addEventListener('keypress', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
-                        document.querySelector('.login .button').click();
+                        document.querySelector('#login .button').click();
                     }
                 });
             });
@@ -618,14 +716,18 @@
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', event.target.closest('form').getAttribute('action'), true);
 
+                    // Authentication header
+                    const auth = document.cookie.match(/auth=([^;]+)/)[1];
+                    xhr.setRequestHeader('Authorization', `Basic ${auth}`);
+
                     xhr.upload.onprogress = function (e) {
                         if (e.lengthComputable) {
                             const percentComplete = (e.loaded / e.total) * 100;
                             // console.log(`Upload Progress: ${Math.round(percentComplete)}%`);
-                            document.getElementById('loader_msg').innerHTML = `Upload progress: ${Math.round(percentComplete)}%`;
+                            showPopupMessage(`Upload progress: ${Math.round(percentComplete)}%`, {modal: true});
 
                             if (percentComplete >= 100 && event.target.id === 'fwupdate') {
-                                document.getElementById('loader_msg').innerHTML = 'Flashing firmware...';
+                                showPopupMessage('Flashing firmware...', { modal: true });
                             }
                         }
                     };
@@ -640,74 +742,101 @@
                             if (response.success !== undefined) {
                                 if (response.success) {
                                     if (response.refresh !== undefined) {
-                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete, rebooting...';
+                                        showPopupMessage(`${prefix}complete, rebooting...`, {modal: true});
                                         // reload page
                                         setTimeout(() => {
                                             window.location.reload(true);
                                         }, response.refresh * 1000);
                                     } else {
-                                        document.getElementById('loader_msg').innerHTML = prefix + 'complete';
+                                        showPopupMessage(`${prefix}complete`, {modal: false});
                                         getData();
-                                        modalLoader = false;
                                     }
                                 } else {
-                                    document.getElementById('loader_msg').innerHTML = prefix + 'failed';
-                                    showLoaderCloseBtn();
+                                    showPopupMessage(`${prefix}failed`, { style: 'error' });
                                 }
                             } else {
-                                document.getElementById('loader_msg').innerHTML = prefix + 'failed';
-                                showLoaderCloseBtn();
+                                showPopupMessage(`${prefix}failed`, { style: 'error' });
                             }
                         }
                     };
 
                     const formData = new FormData();
                     formData.append('file', file);
-                    showLoader();
-                    modalLoader = true;
+                    showPopupMessage();
+                    modalPopup = true;
                     xhr.send(formData);
                 });
             }
         }
 
-        function showLoader() {
-            document.getElementById('loader_msg').innerHTML = 'Loading...';
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('loader_close').style.display = 'none';
-            document.querySelector('.lds-ring').style.display = 'inline-block';
-        }
-
-        function hideLoader() {
-            if (modalLoader) {
-                return;
+        function showPopupMessage(msg = "Loading...", {style = "loading", close = false, modal = false } = {}) {
+            document.querySelector('.overlay').style.display = 'block';
+            document.querySelector('.popup').style.display = 'block';
+            document.querySelector('.popup .msg').innerHTML = msg;
+            switch (style) {
+                case 'loading':
+                    document.querySelector('.popup .lds-ring').style.display = 'inline-block';
+                    document.querySelector('.popup').classList.remove('error');
+                    document.querySelector('.popup').classList.remove('success');
+                    break;
+                case 'success':
+                    document.querySelector('.popup .lds-ring').style.display = 'none';
+                    document.querySelector('.popup').classList.add('success');
+                    document.querySelector('.popup').classList.remove('error');
+                    close = true;
+                    modal = true;
+                    break;
+                case 'error':
+                    document.querySelector('.popup .lds-ring').style.display = 'none';
+                    document.querySelector('.popup').classList.add('error');
+                    document.querySelector('.popup').classList.remove('success');
+                    close = true;
+                    modal = true;
+                    break;
+            }
+            if (close) {
+                document.querySelector('.popup .close').style.display = 'block';
+                document.querySelector('.popup .lds-ring').style.display = 'none';
             } else {
-                document.getElementById('overlay').style.display = 'none';
-                document.getElementById('loader').style.display = 'none';
+                document.querySelector('.popup .close').style.display = 'none';
+            }
+            if (modal) {
+                modalPopup = true;
+            } else {
+                modalPopup = false;
             }
         }
 
-        function showLoaderCloseBtn() {
-            document.getElementById('loader_close').style.display = 'block';
-            document.querySelector('.lds-ring').style.display = 'none';
+        function hidePopup() {
+            if (!modalPopup) {
+                document.querySelector('.overlay').style.display = 'none';
+                document.querySelector('.popup').style.display = 'none';
+            }
         }
 
         function getData() {
-            showLoader();
+            showPopupMessage();
             websocket.send('{"getData": true}');
         }
 
         function processResponse(response) {
-            var hideloader = true;
+            var hideloader = false;
             var html = '';
             for (const key in response) {
                 if (response.hasOwnProperty(key)) {
-                    if (key === 'alert') {
-                        if (document.getElementById('loader').style.display === 'block') {
-                            document.getElementById('loader_msg').innerHTML = response[key];
-                        } else {
-                            alert(response[key]);
-                        }
+                    if (key === 'popup') {
+                        msg = response[key];
+                        icon = 'loading';
+
+                        if(response["icon"] !== undefined) {
+                            icon = response["icon"];
+                            if (icon === 'error') {
+                                close = true;
+                            } else if (icon === 'success') {
+                                close = true;
+                            }
+                        } 
+                        showPopupMessage(msg, {style: icon });
                         continue;
                     }
                     if (key === 'refresh') {
@@ -715,15 +844,16 @@
                             setTimeout(() => {
                                 window.location.reload(true);
                             }, response[key] * 1000);
-                            hideloader = false;
                             break;
                         }
                     }
+
                     const elementId = `json_${key}`;
                     const element = document.getElementById(elementId);
                     // console.log("Processing " + key, response[key])
                     switch (key) {
                         case 'fs':
+                            hideloader = true;
 
                             // file list
                             html = '<div class="table">';
@@ -740,7 +870,7 @@
                                 html += `<div>${formatBytes(response[key][i].size)}</div>`;
                                 html += '<div>';
                                 html += `<button class="button small" data-cmd="play" data-value="${response[key][i].name}">Play</button>`;
-                                html += `<button class="button small red confirm showLoader" data-cmd="delete" data-value="${response[key][i].name}">Delete</button>`;
+                                html += `<button class="button small red confirm showPopup" data-cmd="delete" data-value="${response[key][i].name}">Delete</button>`;
                                 html += '</div>';
                                 html += '</div>';
                             }
@@ -749,6 +879,7 @@
                             break;
 
                         case 'sysinfo':
+                            hideloader = true;
                             html = '<div class="table">';
                             for (const entry in response[key]) {
                                 var value = response[key][entry];
@@ -772,6 +903,7 @@
                             break;
                         default:
                             if (element) {
+                                hideloader = true;
                                 if (element.tagName === 'DIV' || element.tagName === 'SPAN') {
                                     element.innerText = response[key];
                                 } else if (element.tagName === 'INPUT') {

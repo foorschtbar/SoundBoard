@@ -78,9 +78,16 @@ unsigned long lastSysInfoUpdate = 0;
 extern const uint8_t file_index_html_start[] asm("_binary_html_index_html_gz_start");
 extern const uint8_t file_index_html_end[] asm("_binary_html_index_html_gz_end");
 
+typedef enum DATA_TYPE
+{
+  DATA_SYSINFO,
+  DATA_ALL,
+} sendDataType;
+
+
 void showAction()
 {
-  led.wink(100);
+  led.blink(100);
 }
 
 void readSettings()
@@ -225,75 +232,68 @@ void textAllAuthenticatedClients(const String &message)
   }
 }
 
-void sendStatus(String status, int refresh = 0)
+void sendStatus(String status)
 {
   showAction();
-  textAllAuthenticatedClients("{\"status\":\"" + status + "\", \"refresh\":" + String(refresh) + "}");
+  websocket.textAll("{\"status\":\"" + status + "\"}");
   mqtt.publish(MQTT_TOPIC_STATUS, ("{\"status\":\"" + status + "\"}").c_str());
 }
 
-void sendAlert(String alert, int refresh = 0)
+void sendPopup(String msg, String icon="loading", int refresh = 0)
 {
   showAction();
-  textAllAuthenticatedClients("{\"alert\":\"" + alert + "\", \"refresh\":" + String(refresh) + "}");
+  textAllAuthenticatedClients("{\"popup\":\""+msg+"\", \"icon\":\"" + icon + "\", \"refresh\":" + String(refresh) + "}");
 }
 
-void sendUnauthenticatedData(uint32_t clientid)
-{
-  showAction();
-
-  StaticJsonDocument<1000> doc;
-  doc["status"] = "Please login...";
-  doc["hostname_header"] = settings_hostname;
-
-  String jsonString;
-  serializeJson(doc, jsonString);
-  websocket.text(clientid, jsonString);
-}
-
-void sendData(bool shortMsg = false)
+void sendData(sendDataType type)
 {
   showAction();
   // Create a JSON document
   StaticJsonDocument<3000> doc;
 
-  JsonObject sysinfo = doc.createNestedObject("sysinfo");
-  sysinfo["Hostname"] = settings_hostname;
-  sysinfo["Uptime"] = millisToTime(millis());
-  sysinfo["CPU0 reset reason"] = resetReason(rtc_get_reset_reason(0));
-  sysinfo["CPU1 reset reason"] = resetReason(rtc_get_reset_reason(1));
-  sysinfo["MQTT"] = (mqtt.isConnected() ? "Connected" : "Disconnected (" + String(mqtt.state()) + ")");
-  sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + "/" + String(formatFileSize(FILESYSTEM.totalBytes())) + " (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
-  sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + "/" + String(formatFileSize(SD.totalBytes())) + " (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
-  sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
-  if (WiFi.getMode() == WIFI_STA)
+  if (type == DATA_SYSINFO || type == DATA_ALL)
   {
-    sysinfo["SSID"] = WiFi.SSID();
-    sysinfo["IP address"] = WiFi.localIP().toString();
-    sysinfo["Subnet mask"] = WiFi.subnetMask().toString();
-    sysinfo["Gateway"] = WiFi.gatewayIP().toString();
-    sysinfo["MAC address"] = WiFi.macAddress();
-  }
-  else if (WiFi.getMode() == WIFI_AP)
-  {
-    sysinfo["SSID"] = WiFi.softAPSSID();
-    sysinfo["IP address"] = WiFi.softAPIP().toString();
-    sysinfo["MAC address"] = WiFi.softAPmacAddress();
-  }
-  sysinfo["WiFi RSSI"] = String(RSSI2Quality(WiFi.RSSI())) + "% (" + String(WiFi.RSSI()) + " dBm)";
-  sysinfo["Free Heap"] = ESP.getFreeHeap();
-  sysinfo["Free PSRAM"] = ESP.getFreePsram();
-  sysinfo["Chip Revision"] = ESP.getChipRevision();
-  sysinfo["SDK"] = ESP.getSdkVersion();
-  sysinfo["CPU Freq."] = ESP.getCpuFreqMHz();
-  sysinfo["Flash Chip Size"] = ESP.getFlashChipSize();
-  sysinfo["Compiled"] = String(__DATE__) + " " + String(__TIME__);
 
-  if (!shortMsg)
+    JsonObject sysinfo = doc.createNestedObject("sysinfo");
+    sysinfo["Hostname"] = settings_hostname;
+    sysinfo["Uptime"] = millisToTime(millis());
+    sysinfo["CPU0 reset reason"] = resetReason(rtc_get_reset_reason(0));
+    sysinfo["CPU1 reset reason"] = resetReason(rtc_get_reset_reason(1));
+    sysinfo["MQTT"] = (mqtt.isConnected() ? "Connected" : "Disconnected (" + String(mqtt.state()) + ")");
+    sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + "/" + String(formatFileSize(FILESYSTEM.totalBytes())) + " (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
+    sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + "/" + String(formatFileSize(SD.totalBytes())) + " (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
+    if (WiFi.getMode() == WIFI_STA)
+    {
+      sysinfo["SSID"] = WiFi.SSID();
+      sysinfo["IP address"] = WiFi.localIP().toString();
+      sysinfo["Subnet mask"] = WiFi.subnetMask().toString();
+      sysinfo["Gateway"] = WiFi.gatewayIP().toString();
+      sysinfo["MAC address"] = WiFi.macAddress();
+    }
+    else if (WiFi.getMode() == WIFI_AP)
+    {
+      sysinfo["SSID"] = WiFi.softAPSSID();
+      sysinfo["IP address"] = WiFi.softAPIP().toString();
+      sysinfo["MAC address"] = WiFi.softAPmacAddress();
+    }
+    sysinfo["WiFi RSSI"] = String(RSSI2Quality(WiFi.RSSI())) + "% (" + String(WiFi.RSSI()) + " dBm)";
+    sysinfo["Free Heap"] = ESP.getFreeHeap();
+    sysinfo["Free PSRAM"] = ESP.getFreePsram();
+    sysinfo["Chip Revision"] = ESP.getChipRevision();
+    sysinfo["SDK"] = ESP.getSdkVersion();
+    sysinfo["CPU Freq."] = ESP.getCpuFreqMHz();
+    sysinfo["Flash Chip Size"] = ESP.getFlashChipSize();
+    sysinfo["Compiled"] = String(__DATE__) + " " + String(__TIME__);
+
+    doc["status"] = "Reeeaaaady...";
+    doc["hostname_header"] = settings_hostname;
+  }
+
+  if (type == DATA_ALL)
   {
 
     // Add data to the JSON document
-    doc["status"] = "Reeeaaaady...";
     doc["start_volume"] = settings_volume;
     doc["cur_volume"] = currentVolume;
     doc["start_balance"] = settings_balance;
@@ -331,7 +331,6 @@ void sendData(bool shortMsg = false)
     {
       doc["password"] = "";
     }
-    doc["hostname_header"] = settings_hostname;
 
     // Filelist
     JsonArray filesArray = doc.createNestedArray("fs");
@@ -362,15 +361,27 @@ void sendData(bool shortMsg = false)
   // Serialize the JSON document to a string
   String jsonString;
   serializeJson(doc, jsonString);
-  textAllAuthenticatedClients(jsonString);
+  if (type == DATA_SYSINFO)
+  {
+    websocket.textAll(jsonString);
+  }
+  else
+  {
+    textAllAuthenticatedClients(jsonString);
+  }
 
-  if (mqtt.isConnected() && shortMsg) // Only short messages are sent to MQTT
+  if (mqtt.isConnected() && type == DATA_SYSINFO) // Only short messages are sent to MQTT
   {
     // logf("Sending MQTT status\n");
     // logf("> Length: %i\n", jsonString.length());
     // logf("> Content: %s\n", jsonString.c_str());
     mqtt.publish(MQTT_TOPIC_STATUS, jsonString.c_str());
   }
+}
+
+void sendUnauthenticatedData(uint32_t clientid)
+{
+  sendData(DATA_SYSINFO);
 }
 
 void handleMqttMessage(char *topic, byte *payload, unsigned int length)
@@ -433,7 +444,7 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
       }
       if (doc.containsKey("status"))
       {
-        sendData(true);
+        sendData(DATA_SYSINFO);
       }
     }
   }
@@ -468,9 +479,9 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
 
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char *)data);
-    if (doc.containsKey("auth"))
+    if (doc.containsKey("login"))
     {
-      const char *auth = doc["auth"].as<const char *>();
+      const char *auth = doc["login"].as<const char *>();
       // base64 to
       if (BasicAuthHash(settings_username.c_str(), settings_password.c_str()).equalsIgnoreCase(auth))
       {
@@ -484,27 +495,35 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         websocket.text(clientid, "{\"auth_status:\": \"Authentication failed\"}");
         return;
       }
-    }
+    } else if (doc.containsKey("logout"))
+    {
+      authenticatedClients.erase(std::remove(authenticatedClients.begin(), authenticatedClients.end(), clientid), authenticatedClients.end());
+      logf("Client #%u Logged out\n", clientid);
+      websocket.text(clientid, "{\"auth_status:\": \"Logged out\"}");
+    } 
     else if (doc.containsKey("getData"))
     {
-      if (checkWSAuth(clientid)) {
+      if (checkWSAuth(clientid))
+      {
         // Send full data if authenticated
-        sendData();
-      } else {
+        sendData(DATA_ALL);
+      }
+      else
+      {
         // Send short data if not authenticated
         sendUnauthenticatedData(clientid);
       }
     }
 
     // only authenticated clients can send commands
-    if(checkWSAuth(clientid))
+    if (checkWSAuth(clientid))
     {
       if (doc.containsKey("cmd"))
       {
         const char *cmd = doc["cmd"].as<const char *>();
         if (strcmp(cmd, "reboot") == 0)
         {
-          sendAlert(String("Rebooting..."), 10);
+          sendPopup("Rebooting...", "loading", 10);
           shouldReboot = true;
         }
         else if (strcmp(cmd, "reset") == 0)
@@ -518,7 +537,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
           else
           {
             logf("failed!\n");
-            sendAlert("Formating internal filesystem failed!\n");
+            sendPopup("Formating internal filesystem failed!\n", "error");
           }
         }
       }
@@ -545,11 +564,11 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         if (SD.remove("/" + String(filename)))
         {
           sendStatus("Deleted " + String(filename));
-          sendData();
+          sendData(DATA_ALL);
         }
         else
         {
-          sendAlert("Failed to delete " + String(filename) + "!");
+          sendPopup("Failed to delete " + String(filename) + "!", "error");
         }
       }
       else if (doc.containsKey("volume"))
@@ -570,7 +589,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         File file = FILESYSTEM.open("/settings.json", "w");
         if (!file)
         {
-          sendAlert(String("Failed to open file for writing!"));
+          sendPopup("Failed to open file for writing!", "error");
           logln("Failed to open file for writing");
           return;
         }
@@ -638,12 +657,12 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
 
         if (doc.containsKey("reboot"))
         {
-          sendAlert(String("Settings saved. Rebooting..."), 10);
+          sendPopup("Settings saved. Rebooting...", "loading", 10);
           shouldReboot = true;
         }
         else
         {
-          sendAlert(String("Settings saved."));
+          sendPopup("Settings saved.", "success");
         }
       }
     }
@@ -666,7 +685,7 @@ void onMQTTEvent(MQTTEventType event)
     log("MQTT connection failed: ");
     logln(mqtt.state());
   }
-  sendData(true);
+  sendData(DATA_SYSINFO);
 }
 
 void onWSEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
@@ -1050,7 +1069,7 @@ void loop()
   // via websocket and MQTT
   if (millis() - lastSysInfoUpdate > SYSINFO_UPDATE_INTERVAL)
   {
-    sendData(true);
+    sendData(DATA_SYSINFO);
     lastSysInfoUpdate = millis();
   }
 }
