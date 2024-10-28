@@ -10,9 +10,10 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 
 ## ToDos
 
-- [ ] Save authentication in cookie/webstore
-- [ ] Add credentials to post requests
 - [ ] Refactor Code in more separat files
+- [ ] sync volume and balance across all clients
+- [x] Save authentication in cookie/webstore
+- [x] Add credentials to post requests
 - [x] Improve MQTT reconnection and resubscription
 - [x] Improve MQTT reconnection after boot when no connection is available
 - [x] Make MQTT status topic more "chatty"
