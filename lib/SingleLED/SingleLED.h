@@ -13,17 +13,20 @@ public:
     SingleLED(int16_t pin, neoPixelType t);
     void begin();
     void setColor(int r, int g, int b);
+    void setColor(uint32_t color);
     void off();
     void setBrightness(int brightness);
     void toggleColor(int r, int g, int b);
-    void saveColor();
-    void restoreColor();
-    void wink(int ms);
+    void blink(int ms);
+    uint32_t getColor(); // Actual color without the impact of brightness
 
 private:
     static SingleLED *_instance;
-    Adafruit_NeoPixel* _pixels;
+    Adafruit_NeoPixel *_pixels;
     Ticker _ticker;
     uint32_t _color;
     bool _locked;
+    uint32_t _brightness;
+    void saveColor(int r, int g, int b);
+    
 };

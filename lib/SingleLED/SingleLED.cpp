@@ -15,39 +15,39 @@ void SingleLED::begin()
 void SingleLED::setColor(int r, int g, int b)
 {
     _pixels->setPixelColor(0, r, g, b);
+    saveColor(r, g, b);
     _pixels->show();
 }
 
-void SingleLED::saveColor()
+void SingleLED::setColor(uint32_t color)
 {
-    _color = _pixels->getPixelColor(0);
-    
+    _pixels->setPixelColor(0, color);
+    _color = color;
+    _pixels->show();
 }
 
 void SingleLED::toggleColor(int r, int g, int b)
 {
     static boolean toggle;
-    if(toggle)
+    if (toggle)
     {
         _pixels->setPixelColor(0, 0, 0, 0);
+        saveColor(0, 0, 0);
         toggle = false;
     }
     else
     {
         _pixels->setPixelColor(0, r, g, b);
+        saveColor(r, g, b);
         toggle = true;
     }
     _pixels->show();
 }
 
-void SingleLED::restoreColor()
-{
-    _pixels->setPixelColor(0, _color);
-    _pixels->show();
-}
 void SingleLED::off()
 {
     _pixels->setPixelColor(0, 0, 0, 0);
+    saveColor(0, 0, 0);
     _pixels->show();
 }
 
@@ -56,17 +56,27 @@ void SingleLED::setBrightness(int brightness)
     _pixels->setBrightness(brightness);
 }
 
-void SingleLED::wink(int ms)
+u_int32_t SingleLED::getColor()
 {
-    if(!_locked)
+    return _color;
+}
+
+void SingleLED::saveColor(int r, int g, int b)
+{
+    _color = _pixels->Color(r, g, b);
+}
+
+void SingleLED::blink(int ms)
+{
+    if (!_locked)
     {
         _locked = true;
-        saveColor();
+        uint32_t color = getColor();
         off();
-        _ticker.once_ms(ms, []()
-                        {
-            SingleLED::instance()->_locked = false;
-            SingleLED::instance()->restoreColor();
-     });
+        _ticker.once_ms(ms, +[](uint32_t color)
+                            {
+            SingleLED::instance()->setColor(color);
+            SingleLED::instance()->_locked = false; 
+            }, color);
     }
 }
