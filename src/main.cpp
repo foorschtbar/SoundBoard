@@ -32,7 +32,8 @@
 #define DEFAULT_HOSTNAME "SoundBoard"
 #define WIFI_AP_SSID "SoundBoard"
 #define WIFI_AP_PSK "12345678x!"
-#define WIFI_TIMEOUT 1000 * 10 // 10 seconds
+#define WIFI_TIMEOUT 1000 * 10               // 10 seconds
+#define WIFI_RECONNECT_TIMEOUT 1000 * 60 * 5 // 5 minutes
 #define PASSWORD_HIDDEN "**********"
 #define MQTT_TOPIC_CMD "cmd"
 #define MQTT_TOPIC_STATUS "status"
@@ -77,6 +78,7 @@ int settings_volume = DEFAULT_VOLUME;   // 0-21
 int settings_balance = DEFAULT_BALANCE; // -16 to 16
 bool shouldReboot = false;              // flag to use from web update to reboot the ESP
 unsigned long lastSysInfoUpdate = 0;
+unsigned long lastWifiReconnect = 0;
 
 extern const uint8_t file_index_html_start[] asm("_binary_html_index_html_gz_start");
 extern const uint8_t file_index_html_end[] asm("_binary_html_index_html_gz_end");
@@ -89,7 +91,7 @@ typedef enum DATA_TYPE
 
 void showAction()
 {
-  led.blink(100);
+  led.blink(100, 255, 255, 255);
 }
 
 void readSettings()
@@ -424,7 +426,7 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
       {
         currentBalance = doc["balance"].as<int>();
         status = "Balance: " + String(currentBalance);
-        audio.setBalance(currentBalance*-1);
+        audio.setBalance(currentBalance * -1);
       }
       if (doc.containsKey("play"))
       {
@@ -587,7 +589,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
       {
         currentBalance = doc["balance"].as<int>();
         sendStatus(String("Balance: ") + String(currentBalance));
-        audio.setBalance(currentBalance*-1);
+        audio.setBalance(currentBalance * -1);
       }
       else if (doc.containsKey("settings"))
       {
@@ -1046,7 +1048,7 @@ void setup()
   // Audio init
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
   audio.setVolume(settings_volume);
-  audio.setBalance(settings_balance*-1);
+  audio.setBalance(settings_balance * -1);
 
   // MQTT
   if (settingsValid)
@@ -1080,6 +1082,15 @@ void loop()
     mqtt.loop();
   }
 
+  // Reboot if we had a SSID configured but are in AP mode
+  if (millis() - lastWifiReconnect > WIFI_RECONNECT_TIMEOUT && WiFi.getMode() == WIFI_AP && settings_ssid != "")
+  {
+    sendStatus("Rebooting to switch to station mode...");
+    logln(F("Rebooting to switch to station mode..."));
+    shouldReboot = true;
+  }
+
+  // Check if we should reboot
   if (shouldReboot)
   {
     logln("> Rebooting...");
@@ -1094,6 +1105,7 @@ void loop()
     sendData(DATA_SYSINFO);
     lastSysInfoUpdate = millis();
   }
+  vTaskDelay(1);
 }
 
 // optional

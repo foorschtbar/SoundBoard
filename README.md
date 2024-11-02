@@ -2,6 +2,18 @@
 
 A simple pcb with two audio drivers, a sd card reader and a microcontroller to play sounds.
 
+## Features
+- On factory settings or no known WiFi SSID is found, device starts in AP mode
+  - To stay in AP mode, leave the SSID and Password empty
+- The LED show the status of the device
+  - `Orange`: Booting
+  - `Blue`: Connecting to WiFi
+  - `Green`: Connected to existing WiFi
+  - `Violet`: Started WiFi AP
+  - `Red`: No connection to WiFi
+  - `White`: Web or MQTT activity
+- The device can be controlled via MQTT
+
 ## Frontend development
 
 - Start the frontend development server with `python .\webserver.py` in the `html` directory.
