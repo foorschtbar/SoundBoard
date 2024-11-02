@@ -39,12 +39,15 @@ bool MQTT::connect()
     bool connected = false;
     if (strlen(_willTopic) > 0)
     {
-        if(strlen(_prefix) > 0) {
+        if (strlen(_prefix) > 0)
+        {
             char newTopic[strlen(_prefix) + strlen(_willTopic) + 1];
             strcpy(newTopic, _prefix);
             strcat(newTopic, _willTopic);
             connected = _client->connect(_id, _user, _pass, newTopic, _willQos, _willRetain, _willMessage);
-        } else {
+        }
+        else
+        {
             connected = _client->connect(_id, _user, _pass, _willTopic, _willQos, _willRetain, _willMessage);
         }
     }
@@ -112,6 +115,11 @@ void MQTT::loop()
 
 void MQTT::publish(const char *topic, const char *payload)
 {
+    if (!_client->connected())
+    {
+        return;
+    }
+
     // if prefix length is greater than 0, prepend it to the topic
     if (strlen(_prefix) > 0)
     {
@@ -128,12 +136,15 @@ void MQTT::publish(const char *topic, const char *payload)
 
 void MQTT::subscribe(const char *topic)
 {
-    if(strlen(_prefix) > 0) {
+    if (strlen(_prefix) > 0)
+    {
         char newTopic[strlen(_prefix) + strlen(topic) + 1];
         strcpy(newTopic, _prefix);
         strcat(newTopic, topic);
         _client->subscribe(newTopic);
-    } else {
+    }
+    else
+    {
         _client->subscribe(topic);
     }
 }

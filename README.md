@@ -12,6 +12,9 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 
 - [ ] Refactor Code in more separat files
 - [ ] sync volume and balance across all clients
+- [ ] If we had valid settings, but in Fallback AP mode, try to connect to the last known wifi periodically
+- [ ] Download audiofiles from the webinterface
+- [ ] Replace Pay/Delete/Download wit icons?
 - [x] Save authentication in cookie/webstore
 - [x] Add credentials to post requests
 - [x] Improve MQTT reconnection and resubscription

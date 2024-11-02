@@ -34,12 +34,15 @@
 #define WIFI_AP_PSK "12345678x!"
 #define WIFI_TIMEOUT 1000 * 10 // 10 seconds
 #define PASSWORD_HIDDEN "**********"
-#define MQTT_TOPIC_PREFIX "soundboard"
 #define MQTT_TOPIC_CMD "cmd"
 #define MQTT_TOPIC_STATUS "status"
 #define SYSINFO_UPDATE_INTERVAL 1000 * 30
 #define DEFAULT_USERNAME "admin"
 #define DEFAULT_PASSWORD "admin"
+#define DEFAULT_VOLUME 5
+#define DEFAULT_BALANCE 0
+#define DEFAULT_MQTT_TOPIC_PREFIX "soundboard"
+#define DEFAULT_MQTT_PORT "1883"
 
 // Audioplay
 Audio audio;
@@ -55,8 +58,8 @@ AsyncWebSocket websocket("/ws");
 std::vector<uint32_t> authenticatedClients;
 
 // Variables
-int currentVolume = 0;
-int currentBalance = 0;
+int currentVolume = DEFAULT_VOLUME;
+int currentBalance = DEFAULT_BALANCE;
 
 // Settings
 bool settingsValid = false;
@@ -64,15 +67,15 @@ String settings_ssid;
 String settings_psk;
 String settings_hostname = DEFAULT_HOSTNAME;
 String settings_mqtt_broker;
-String settings_mqtt_port;
+String settings_mqtt_port = DEFAULT_MQTT_PORT;
 String settings_mqtt_user;
 String settings_mqtt_pass;
-String settings_mqtt_prefix = MQTT_TOPIC_PREFIX;
+String settings_mqtt_prefix = DEFAULT_MQTT_TOPIC_PREFIX;
 String settings_username = DEFAULT_USERNAME;
 String settings_password = DEFAULT_PASSWORD;
-int settings_volume = 5;   // 0-21
-int settings_balance = 0;  // -16 to 16
-bool shouldReboot = false; // flag to use from web update to reboot the ESP
+int settings_volume = DEFAULT_VOLUME;   // 0-21
+int settings_balance = DEFAULT_BALANCE; // -16 to 16
+bool shouldReboot = false;              // flag to use from web update to reboot the ESP
 unsigned long lastSysInfoUpdate = 0;
 
 extern const uint8_t file_index_html_start[] asm("_binary_html_index_html_gz_start");
@@ -83,7 +86,6 @@ typedef enum DATA_TYPE
   DATA_SYSINFO,
   DATA_ALL,
 } sendDataType;
-
 
 void showAction()
 {
@@ -236,13 +238,16 @@ void sendStatus(String status)
 {
   showAction();
   websocket.textAll("{\"status\":\"" + status + "\"}");
-  mqtt.publish(MQTT_TOPIC_STATUS, ("{\"status\":\"" + status + "\"}").c_str());
+  if (mqtt.isConnected())
+  {
+    mqtt.publish(MQTT_TOPIC_STATUS, ("{\"status\":\"" + status + "\"}").c_str());
+  }
 }
 
-void sendPopup(String msg, String icon="loading", int refresh = 0)
+void sendPopup(String msg, String icon = "loading", int refresh = 0)
 {
   showAction();
-  textAllAuthenticatedClients("{\"popup\":\""+msg+"\", \"icon\":\"" + icon + "\", \"refresh\":" + String(refresh) + "}");
+  textAllAuthenticatedClients("{\"popup\":\"" + msg + "\", \"icon\":\"" + icon + "\", \"refresh\":" + String(refresh) + "}");
 }
 
 void sendData(sendDataType type)
@@ -419,7 +424,7 @@ void handleMqttMessage(char *topic, byte *payload, unsigned int length)
       {
         currentBalance = doc["balance"].as<int>();
         status = "Balance: " + String(currentBalance);
-        audio.setBalance(currentBalance);
+        audio.setBalance(currentBalance*-1);
       }
       if (doc.containsKey("play"))
       {
@@ -495,12 +500,13 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         websocket.text(clientid, "{\"auth_status:\": \"Authentication failed\"}");
         return;
       }
-    } else if (doc.containsKey("logout"))
+    }
+    else if (doc.containsKey("logout"))
     {
       authenticatedClients.erase(std::remove(authenticatedClients.begin(), authenticatedClients.end(), clientid), authenticatedClients.end());
       logf("Client #%u Logged out\n", clientid);
       websocket.text(clientid, "{\"auth_status:\": \"Logged out\"}");
-    } 
+    }
     else if (doc.containsKey("getData"))
     {
       if (checkWSAuth(clientid))
@@ -581,7 +587,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
       {
         currentBalance = doc["balance"].as<int>();
         sendStatus(String("Balance: ") + String(currentBalance));
-        audio.setBalance(currentBalance);
+        audio.setBalance(currentBalance*-1);
       }
       else if (doc.containsKey("settings"))
       {
@@ -920,7 +926,7 @@ void setupWiFiAP()
 void setup()
 {
   led.begin();
-  led.setBrightness(128);
+  led.setBrightness(64);
   led.setColor(255, 165, 0); // Orange. Booting...
 
   // Power off onboard LED
@@ -1040,7 +1046,7 @@ void setup()
   // Audio init
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
   audio.setVolume(settings_volume);
-  audio.setBalance(settings_balance);
+  audio.setBalance(settings_balance*-1);
 
   // MQTT
   if (settingsValid)
@@ -1050,14 +1056,30 @@ void setup()
 
   logln(F("Setup done."));
   delay(100);
-  led.setColor(0, 255, 0); // Green. Ready...
+
+  if (WiFi.getMode() == WIFI_STA)
+  {
+    // WiFi Station. Status Green. Ready...
+    led.setColor(0, 255, 0);
+  }
+  else
+  {
+    // WiFi AP. Status Violet. Ready...
+    led.setColor(148, 0, 211);
+  }
 }
 
 void loop()
 {
   websocket.cleanupClients();
   audio.loop();
-  mqtt.loop();
+
+  // Disable MQTT in AP mode
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    mqtt.loop();
+  }
+
   if (shouldReboot)
   {
     logln("> Rebooting...");
