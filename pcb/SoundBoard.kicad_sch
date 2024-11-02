@@ -4093,7 +4093,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C_Polarized"
+		(property "Value" "470uF"
 			(at 241.3 68.9609 0)
 			(effects
 				(font
@@ -4247,7 +4247,7 @@
 				)
 			)
 		)
-		(property "Value" "D_Schottky"
+		(property "Value" "1N5822"
 			(at 99.3775 69.85 0)
 			(effects
 				(font
@@ -4255,7 +4255,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Diode_SMD:D_SOD-123"
+		(property "Footprint" "Diode_SMD:D_SMA_Handsoldering"
 			(at 99.06 73.66 0)
 			(effects
 				(font
@@ -4457,7 +4457,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C_Polarized"
+		(property "Value" "470uF"
 			(at 241.3 114.6809 0)
 			(effects
 				(font
@@ -4868,7 +4868,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C_Polarized"
+		(property "Value" "470uF"
 			(at 113.03 34.6709 0)
 			(effects
 				(font
