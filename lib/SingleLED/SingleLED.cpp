@@ -68,15 +68,20 @@ void SingleLED::saveColor(int r, int g, int b)
 
 void SingleLED::blink(int ms)
 {
+   blink(ms, 0, 0, 0);
+}
+
+void SingleLED::blink(int ms, int r, int g, int b)
+{
     if (!_locked)
     {
         _locked = true;
         uint32_t color = getColor();
-        off();
+        setColor(r, g, b);
         _ticker.once_ms(ms, +[](uint32_t color)
                             {
             SingleLED::instance()->setColor(color);
-            SingleLED::instance()->_locked = false; 
-            }, color);
+            SingleLED::instance()->_locked = false; },
+                        color);
     }
 }

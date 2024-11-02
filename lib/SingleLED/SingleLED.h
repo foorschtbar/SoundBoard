@@ -18,6 +18,7 @@ public:
     void setBrightness(int brightness);
     void toggleColor(int r, int g, int b);
     void blink(int ms);
+    void blink(int ms, int r, int g, int b);
     uint32_t getColor(); // Actual color without the impact of brightness
 
 private:
