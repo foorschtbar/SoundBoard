@@ -1,7 +1,9 @@
 # SoundBoard
 
-A simple pcb with two audio drivers, a sd card reader and a microcontroller to play sounds.
+A simple PCB with two audio drivers, a SD card reader and a ESP32 microcontroller to play sounds via MQTT.
 
+<img src=".github/soundboard_01.jpg" width="320"> <img src=".github/soundboard_02.jpg" width="320">
+<img src=".github/soundboard_04.jpg" width="320"> <img src=".github/soundboard_03.jpg" width="320">
 ## Features
 - On factory settings or no known WiFi SSID is found, device starts in AP mode
   - To stay in AP mode, leave the SSID and password empty
@@ -16,6 +18,16 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
   - Subscripte to `<prefix>/status` to get the status of the device
   - Publish to `<prefix>/cmd` to play a sound
     - `{"play": "filename.mp3", "volume": 50, "balance": 0}` (volume and balance are optional)
+  
+## Hardware
+
+### Case
+
+- The case could be found on [Printables](https://www.printables.com/model/1072334-soundboard).
+
+### PCB
+
+- The PCB was designed with KiCad and could be found in the `pcb` directory.
 
 ## Development
 ### Frontend development
