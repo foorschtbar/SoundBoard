@@ -42,7 +42,7 @@
 #define DEFAULT_PASSWORD "admin"
 #define DEFAULT_VOLUME 5
 #define DEFAULT_BALANCE 0
-#define DEFAULT_MQTT_TOPIC_PREFIX "soundboard"
+#define DEFAULT_MQTT_TOPIC_PREFIX "soundboard/"
 #define DEFAULT_MQTT_PORT "1883"
 
 // Audioplay
@@ -192,6 +192,14 @@ void writeSettings()
   doc["mqtt_port"] = settings_mqtt_port;
   doc["mqtt_user"] = settings_mqtt_user;
   doc["mqtt_pass"] = settings_mqtt_pass;
+  
+  // trim mqtt_prefix
+  settings_mqtt_prefix.trim();
+  // check if mqtt_prefix ends with a slash
+  if (settings_mqtt_prefix[settings_mqtt_prefix.length() - 1] != '/')
+  {
+    settings_mqtt_prefix += "/";
+  }
   doc["mqtt_prefix"] = settings_mqtt_prefix;
 
   // Open the file for writing
@@ -1018,6 +1026,27 @@ void setup()
     request->send(response); 
 } }, handleUpdate);
 
+  // handle file downloads at subfolder /download/<filename>
+  server.on("/download", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+              if (!checkCredentials(request))
+              {
+                return;
+              }
+              if (request->hasParam("file"))
+              {
+                String filename = request->getParam("file")->value();
+                logf("Download file: %s\n", filename.c_str());
+                AsyncWebServerResponse *response = request->beginResponse(SD, "/" + filename, "application/octet-stream", true);
+                response->addHeader("Content-Disposition", "attachment; filename=" + filename);
+                request->send(response);
+              }
+              else
+              {
+                request->send(400, "text/plain", "400: Invalid Request");
+              }
+            });
+
   // run handleUpload function when any file is uploaded
   server.on(
       "/upload", HTTP_POST, [](AsyncWebServerRequest *request) { /*request->send(200);*/ },
@@ -1075,6 +1104,7 @@ void loop()
 {
   websocket.cleanupClients();
   audio.loop();
+  vTaskDelay(1);
 
   // Disable MQTT in AP mode
   if (WiFi.status() == WL_CONNECTED)
@@ -1105,6 +1135,7 @@ void loop()
     sendData(DATA_SYSINFO);
     lastSysInfoUpdate = millis();
   }
+  
   vTaskDelay(1);
 }
 

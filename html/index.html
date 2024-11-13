@@ -119,8 +119,36 @@
                 font-size: 12px;
             }
 
-            &.red {
-                background-color: #d9534f;
+            &.delete {
+                background-color: #c9302c;
+
+                &::after {
+                    content: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIj48IS0tIUZvbnQgQXdlc29tZSBGcmVlIDYuNi4wIGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlL2ZyZWUgQ29weXJpZ2h0IDIwMjQgRm9udGljb25zLCBJbmMuLS0+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTEzNS4yIDE3LjdMMTI4IDMyIDMyIDMyQzE0LjMgMzIgMCA0Ni4zIDAgNjRTMTQuMyA5NiAzMiA5NmwzODQgMGMxNy43IDAgMzItMTQuMyAzMi0zMnMtMTQuMy0zMi0zMi0zMmwtOTYgMC03LjItMTQuM0MzMDcuNCA2LjggMjk2LjMgMCAyODQuMiAwTDE2My44IDBjLTEyLjEgMC0yMy4yIDYuOC0yOC42IDE3Ljd6TTQxNiAxMjhMMzIgMTI4IDUzLjIgNDY3YzEuNiAyNS4zIDIyLjYgNDUgNDcuOSA0NWwyNDUuOCAwYzI1LjMgMCA0Ni4zLTE5LjcgNDcuOS00NUw0MTYgMTI4eiIvPjwvc3ZnPg==);
+                    display: block;
+                    width: 10px;
+                    height: 20px;
+                    margin: 5px 0px 0px 0px;
+                }
+
+                &:hover {
+                    background-color: #cb625f;
+                }
+            }
+
+            &.play::after {
+                content: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48IS0tIUZvbnQgQXdlc29tZSBGcmVlIDYuNi4wIGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlL2ZyZWUgQ29weXJpZ2h0IDIwMjQgRm9udGljb25zLCBJbmMuLS0+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTczIDM5Yy0xNC44LTkuMS0zMy40LTkuNC00OC41LS45UzAgNjIuNiAwIDgwTDAgNDMyYzAgMTcuNCA5LjQgMzMuNCAyNC41IDQxLjlzMzMuNyA4LjEgNDguNS0uOUwzNjEgMjk3YzE0LjMtOC43IDIzLTI0LjIgMjMtNDFzLTguNy0zMi4yLTIzLTQxTDczIDM5eiIvPjwvc3ZnPg==);
+                display: block;
+                width: 10px;
+                height: 20px;
+                margin: 5px 0px 0px 0px;
+            }
+
+            &.download::after {
+                content: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48IS0tIUZvbnQgQXdlc29tZSBGcmVlIDYuNi4wIGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlL2ZyZWUgQ29weXJpZ2h0IDIwMjQgRm9udGljb25zLCBJbmMuLS0+PHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTI4OCAzMmMwLTE3LjctMTQuMy0zMi0zMi0zMnMtMzIgMTQuMy0zMiAzMmwwIDI0Mi43LTczLjQtNzMuNGMtMTIuNS0xMi41LTMyLjgtMTIuNS00NS4zIDBzLTEyLjUgMzIuOCAwIDQ1LjNsMTI4IDEyOGMxMi41IDEyLjUgMzIuOCAxMi41IDQ1LjMgMGwxMjgtMTI4YzEyLjUtMTIuNSAxMi41LTMyLjggMC00NS4zcy0zMi44LTEyLjUtNDUuMyAwTDI4OCAyNzQuNyAyODggMzJ6TTY0IDM1MmMtMzUuMyAwLTY0IDI4LjctNjQgNjRsMCAzMmMwIDM1LjMgMjguNyA2NCA2NCA2NGwzODQgMGMzNS4zIDAgNjQtMjguNyA2NC02NGwwLTMyYzAtMzUuMy0yOC43LTY0LTY0LTY0bC0xMDEuNSAwLTQ1LjMgNDUuM2MtMjUgMjUtNjUuNSAyNS05MC41IDBMMTY1LjUgMzUyIDY0IDM1MnptMzY4IDU2YTI0IDI0IDAgMSAxIDAgNDggMjQgMjQgMCAxIDEgMC00OHoiLz48L3N2Zz4=);
+                display: block;
+                width: 10px;
+                height: 20px;
+                margin: 5px 0px 0px 0px;
             }
         }
 
@@ -272,9 +300,6 @@
             }
         }
 
-
-
-
         .table {
             display: table;
             width: 100%;
@@ -290,8 +315,16 @@
             }
 
             &>div>div:first-child {
-                font-weight: bold;
                 text-align: left;
+                font-weight: bold;
+            }
+
+            &.fs>div:not(:first-child)>div:first-child {
+                font-weight: normal;
+            }
+
+            &.fs>div:first-child {
+                font-weight: bold;
             }
 
             &>div>div:last-child {
@@ -342,11 +375,11 @@
             <form action="/auth" id="login">
                 <div class="row">
                     <label for="username">Username</label>
-                    <input type="text" name="username" autocomplete="off" placeholder="Username">
+                    <input type="text" name="username" autocomplete="off">
                 </div>
                 <div class="row">
                     <label for="password">Password</label>
-                    <input type="password" name="password" autocomplete="off" placeholder="Password">
+                    <input type="password" name="password" autocomplete="off">
                 </div>
                 <input type="button" data-cmd="login" class="button" value='Login'>
             </form>
@@ -375,17 +408,20 @@
         </div>
         <div class="card needlogin hidden">
             <h2>Text-to-Speech</h2>
-            <p>
+            <div class="row">
                 <label for="tts_text">Text</label>
-                <input type="text" name="tts_text" id="json_tts_text" autocomplete="off" placeholder="Text to speak">
+                <input type="text" name="tts_text" id="json_tts_text" autocomplete="off" placeholder="Text to speech">
+            </div>
+            <div class="row">
+                <label for="json_tts_lang">Language</label>
+
                 <select id="json_tts_lang">
                     <option value="de">German</option>
                     <option value="en">English</option>
                 </select>
-            </p>
-            <p>
-                <button class="button" data-cmd="tts">Speak</button>
-            </p>
+            </div>
+            <br />
+            <button class="button" data-cmd="tts">Speak</button>
         </div>
         <div class="card needlogin hidden">
             <h2>Maintenance</h2>
@@ -406,32 +442,32 @@
             <form id="settings">
                 <h3>Network</h3>
                 <div class="row"><label for="ssid">SSID</label><input type='text' name='ssid' id="json_ssid"
-                        autocomplete='off' placeholder='SSID'></div>
+                        autocomplete='off'></div>
                 <div class="row"><label for="psk">PSK</label><input type='password' name='psk' id="json_psk"
-                        autocomplete='off' placeholder='PSK'></div>
+                        autocomplete='off'></div>
                 <div class="row"><label for="hostname">Hostname</label><input type='text' name='hostname'
-                        id="json_hostname" autocomplete='off' placeholder='Hostname'></div>
+                        id="json_hostname" autocomplete='off'></div>
                 <h3>Authentication</h3>
                 <div class="row"><label for="username">Username</label><input type='text' name='username'
-                        id="json_username" autocomplete='off' placeholder='Username'></div>
+                        id="json_username" autocomplete='off'></div>
                 <div class="row"><label for="password">Password</label><input type='password' name='password'
-                        id="json_password" autocomplete='off' placeholder='Password'></div>
+                        id="json_password" autocomplete='off'></div>
                 <h3>MQTT</h3>
                 <div class="row"><label for="mqtt_broker">MQTT Broker</label><input type='text' name='mqtt_broker'
-                        id="json_mqtt_broker" autocomplete='off' placeholder='MQTT Broker'></div>
+                        id="json_mqtt_broker" autocomplete='off'></div>
                 <div class="row"><label for="mqtt_port">MQTT Port</label><input type='text' name='mqtt_port'
-                        id="json_mqtt_port" autocomplete='off' placeholder='MQTT Port'></div>
+                        id="json_mqtt_port" autocomplete='off'></div>
                 <div class="row"><label for="mqtt_user">MQTT User</label><input type='text' name='mqtt_user'
-                        id="json_mqtt_user" autocomplete='off' placeholder='MQTT User'></div>
+                        id="json_mqtt_user" autocomplete='off'></div>
                 <div class="row"><label for="mqtt_pass">MQTT Pass</label><input type='password' name='mqtt_pass'
-                        id="json_mqtt_pass" autocomplete='off' placeholder='MQTT Pass'></div>
+                        id="json_mqtt_pass" autocomplete='off'></div>
                 <div class="row"><label for="mqtt_prefix">MQTT Prefix</label><input type='text' name='mqtt_prefix'
-                        id="json_mqtt_prefix" autocomplete='off' placeholder='MQTT Prefix'></div>
+                        id="json_mqtt_prefix" autocomplete='off'></div>
                 <h3>General</h3>
                 <div class="row"><label for="volume">Start volume</label><input type='text' name='volume'
-                        id="json_start_volume" autocomplete='off' placeholder='Start volume'></div>
+                        id="json_start_volume" autocomplete='off'></div>
                 <div class="row"><label for="balance">Start balance</label><input type='text' name='balance'
-                        id="json_start_balance" autocomplete='off' placeholder='Start balance'></div>
+                        id="json_start_balance" autocomplete='off'></div>
                 <br />
                 <input type="button" data-cmd="settingssave" class="button confirm showPopup" value='Save and Reboot'>
             </form>
@@ -553,23 +589,23 @@
                     }
                     // hide login card
                     document.querySelector('.card.withoutlogin').classList.add('hidden');
-                    
+
 
                     // clear login form
                     var form = document.querySelector('#login');
                     form.elements['username'].value = '';
                     form.elements['password'].value = '';
-                    
+
                     // get initial data
                     getData();
 
                 } else if (xhr.readyState === 4 && xhr.status === 401) {
                     clearAuthCookie();
-                    if(preauth) {
+                    if (preauth) {
                         getData();
                     } else {
-                        showPopupMessage('Login failed', {style: 'error', close: true, modal: true });
-                    } 
+                        showPopupMessage('Login failed', { style: 'error', close: true, modal: true });
+                    }
 
                 }
             };
@@ -611,6 +647,36 @@
                                     login(base64);
 
 
+                                    break;
+                                case 'download':
+                                    // creat ajax request to download file
+                                    var xhr = new XMLHttpRequest();
+                                    xhr.open('GET', `${base_url}/download?file=${value}`, true);
+                                    xhr.responseType = 'blob';
+                                    xhr.setRequestHeader('Authorization', `Basic ${document.cookie.match(/auth=([^;]+)/)[1]}`);
+                                    xhr.onprogress = function (e) {
+                                        if (e.lengthComputable) {
+                                            var percentComplete = (e.loaded / e.total) * 100;
+                                            showPopupMessage(`Download progress: ${Math.round(percentComplete)}%`, { style: 'loading', modal: true });
+                                        } else {
+                                            showPopupMessage('Downloading...', { style: 'loading', modal: true });
+                                        }
+                                    };
+                                    xhr.onload = function () {
+                                        if (xhr.status === 200) {
+                                            var url = window.URL.createObjectURL(xhr.response);
+                                            var a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = value;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            window.URL.revokeObjectURL(url);
+                                            hidePopup(true);
+                                        } else {
+                                            showPopupMessage('Download failed', { style: 'error', close: true, modal: true });
+                                        }
+                                    };
+                                    xhr.send();
                                     break;
                                 case 'logout':
                                     logout();
@@ -714,7 +780,7 @@
             // react to escape key
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
-                    if(document.querySelector('.popup ').style.display !== 'none') {
+                    if (document.querySelector('.popup ').style.display !== 'none') {
                         modalPopup = false;
                         hidePopup();
                     }
@@ -763,7 +829,7 @@
                         if (e.lengthComputable) {
                             const percentComplete = (e.loaded / e.total) * 100;
                             // console.log(`Upload Progress: ${Math.round(percentComplete)}%`);
-                            showPopupMessage(`Upload progress: ${Math.round(percentComplete)}%`, {modal: true});
+                            showPopupMessage(`Upload progress: ${Math.round(percentComplete)}%`, { modal: true });
 
                             if (percentComplete >= 100 && event.target.id === 'fwupdate') {
                                 showPopupMessage('Flashing firmware...', { modal: true });
@@ -781,13 +847,13 @@
                             if (response.success !== undefined) {
                                 if (response.success) {
                                     if (response.refresh !== undefined) {
-                                        showPopupMessage(`${prefix}complete, rebooting...`, {modal: true});
+                                        showPopupMessage(`${prefix}complete, rebooting...`, { modal: true });
                                         // reload page
                                         setTimeout(() => {
                                             window.location.reload(true);
                                         }, response.refresh * 1000);
                                     } else {
-                                        showPopupMessage(`${prefix}complete`, {modal: false});
+                                        showPopupMessage(`${prefix}complete`, { modal: false });
                                         getData();
                                     }
                                 } else {
@@ -808,7 +874,7 @@
             }
         }
 
-        function showPopupMessage(msg = "Loading...", {style = "loading", close = false, modal = false } = {}) {
+        function showPopupMessage(msg = "Loading...", { style = "loading", close = false, modal = false } = {}) {
             var popup = document.querySelector('.popup');
             var overlay = document.querySelector('.overlay');
             popup.classList.remove('hidden');
@@ -851,7 +917,10 @@
             }
         }
 
-        function hidePopup() {
+        function hidePopup(force = false) {
+            if (force) {
+                modalPopup = false;
+            }
             if (!modalPopup) {
                 document.querySelector('.overlay').classList.add('hidden');
                 document.querySelector('.popup').classList.add('hidden');
@@ -872,15 +941,15 @@
                         msg = response[key];
                         icon = 'loading';
 
-                        if(response["icon"] !== undefined) {
+                        if (response["icon"] !== undefined) {
                             icon = response["icon"];
                             if (icon === 'error') {
                                 close = true;
                             } else if (icon === 'success') {
                                 close = true;
                             }
-                        } 
-                        showPopupMessage(msg, {style: icon });
+                        }
+                        showPopupMessage(msg, { style: icon });
                         continue;
                     }
                     if (key === 'refresh') {
@@ -900,7 +969,7 @@
                             hideloader = true;
 
                             // file list
-                            html = '<div class="table">';
+                            html = '<div class="table fs">';
                             for (let i = 0; i < response[key].length; i++) {
                                 if (i == 0) {
                                     html += '<div>';
@@ -913,8 +982,9 @@
                                 html += `<div>${response[key][i].name}</div>`;
                                 html += `<div>${formatBytes(response[key][i].size)}</div>`;
                                 html += '<div>';
-                                html += `<button class="button small" data-cmd="play" data-value="${response[key][i].name}">Play</button>`;
-                                html += `<button class="button small red confirm showPopup" data-cmd="delete" data-value="${response[key][i].name}">Delete</button>`;
+                                html += `<button class="button small play" data-cmd="play" data-value="${response[key][i].name}"></button>`;
+                                html += `<button class="button small download" data-cmd="download" data-value="${response[key][i].name}"></button>`;
+                                html += `<button class="button small delete confirm showPopup" data-cmd="delete" data-value="${response[key][i].name}"></button>`;
                                 html += '</div>';
                                 html += '</div>';
                             }
@@ -938,7 +1008,7 @@
                                         break;
                                 }
                                 html += '<div>';
-                                html += `<div>${entry}</div>`;
+                                html += `<div>${entry}:</div>`;
                                 html += `<div>${value}</div>`;
                                 html += '</div>';
                             }

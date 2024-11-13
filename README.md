@@ -4,7 +4,7 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 
 ## Features
 - On factory settings or no known WiFi SSID is found, device starts in AP mode
-  - To stay in AP mode, leave the SSID and Password empty
+  - To stay in AP mode, leave the SSID and password empty
 - The LED show the status of the device
   - `Orange`: Booting
   - `Blue`: Connecting to WiFi
@@ -12,25 +12,26 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
   - `Violet`: Started WiFi AP
   - `Red`: No connection to WiFi
   - `White`: Web or MQTT activity
-- The device can be controlled via MQTT
+- The device can be controlled via MQTT:
   - Subscripte to `<prefix>/status` to get the status of the device
   - Publish to `<prefix>/cmd` to play a sound
-    - `{"play": "filename.wav", "volume": 50, "balance": 0}` (volume and balance are optional)
+    - `{"play": "filename.mp3", "volume": 50, "balance": 0}` (volume and balance are optional)
 
-## Frontend development
+## Development
+### Frontend development
 
 - Start the frontend development server with `python .\webserver.py` in the `html` directory.
 - Open the browser at `http://localhost:8000/` to see the frontend.
 - Set manual a cookie with `overwrite-host` to the hostname or ip of the device and reload the page.
 
-## ToDos
+### ToDos
 
 - [ ] Refactor Code in more separat files
-- [ ] sync volume and balance across all clients
-- [ ] If we had valid settings, but in Fallback AP mode, try to connect to the last known wifi periodically
-- [ ] Download audiofiles from the webinterface
-- [ ] Replace Pay/Delete/Download wit icons?
-- [ ] Add tailing slash to the topic prefix
+- [ ] sync volume and balance fader across all clients
+- [x] If we had valid settings, but in Fallback AP mode, try to connect to the last known wifi periodically
+- [x] Download audiofiles from the webinterface
+- [x] Replace Pay/Delete/Download wit icons?
+- [x] Add tailing slash to the topic prefix
 - [x] Save authentication in cookie/webstore
 - [x] Add credentials to post requests
 - [x] Improve MQTT reconnection and resubscription
