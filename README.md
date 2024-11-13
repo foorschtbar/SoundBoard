@@ -13,6 +13,9 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
   - `Red`: No connection to WiFi
   - `White`: Web or MQTT activity
 - The device can be controlled via MQTT
+  - Subscripte to `<prefix>/status` to get the status of the device
+  - Publish to `<prefix>/cmd` to play a sound
+    - `{"play": "filename.wav", "volume": 50, "balance": 0}` (volume and balance are optional)
 
 ## Frontend development
 
@@ -27,6 +30,7 @@ A simple pcb with two audio drivers, a sd card reader and a microcontroller to p
 - [ ] If we had valid settings, but in Fallback AP mode, try to connect to the last known wifi periodically
 - [ ] Download audiofiles from the webinterface
 - [ ] Replace Pay/Delete/Download wit icons?
+- [ ] Add tailing slash to the topic prefix
 - [x] Save authentication in cookie/webstore
 - [x] Add credentials to post requests
 - [x] Improve MQTT reconnection and resubscription
