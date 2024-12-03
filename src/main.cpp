@@ -79,6 +79,8 @@ int settings_balance = DEFAULT_BALANCE; // -16 to 16
 bool shouldReboot = false;              // flag to use from web update to reboot the ESP
 unsigned long lastSysInfoUpdate = 0;
 unsigned long lastWifiReconnect = 0;
+bool fsInternalMounted = false;
+bool fsExternalMounted = false;
 
 extern const uint8_t file_index_html_start[] asm("_binary_html_index_html_gz_start");
 extern const uint8_t file_index_html_end[] asm("_binary_html_index_html_gz_end");
@@ -96,6 +98,13 @@ void showAction()
 
 void readSettings()
 {
+
+  if (!FILESYSTEM.exists("/settings.json"))
+  {
+    logln(F("Settings file not found"));
+    return;
+  }
+
   // Open the file for reading
   File file = FILESYSTEM.open("/settings.json", "r");
 
@@ -192,7 +201,7 @@ void writeSettings()
   doc["mqtt_port"] = settings_mqtt_port;
   doc["mqtt_user"] = settings_mqtt_user;
   doc["mqtt_pass"] = settings_mqtt_pass;
-  
+
   // trim mqtt_prefix
   settings_mqtt_prefix.trim();
   // check if mqtt_prefix ends with a slash
@@ -275,8 +284,22 @@ void sendData(sendDataType type)
     sysinfo["CPU0 reset reason"] = resetReason(rtc_get_reset_reason(0));
     sysinfo["CPU1 reset reason"] = resetReason(rtc_get_reset_reason(1));
     sysinfo["MQTT"] = (mqtt.isConnected() ? "Connected" : "Disconnected (" + String(mqtt.state()) + ")");
-    sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + "/" + String(formatFileSize(FILESYSTEM.totalBytes())) + " (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
-    sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + "/" + String(formatFileSize(SD.totalBytes())) + " (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    if (fsInternalMounted)
+    {
+      sysinfo["FS (internal)"] = String(formatFileSize(FILESYSTEM.usedBytes())) + "/" + String(formatFileSize(FILESYSTEM.totalBytes())) + " (" + String(FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0) + "%)";
+    }
+    else
+    {
+      sysinfo["FS (internal)"] = "Not mounted";
+    }
+    if (fsExternalMounted)
+    {
+      sysinfo["FS (external)"] = String(formatFileSize(SD.usedBytes())) + "/" + String(formatFileSize(SD.totalBytes())) + " (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    }
+    else
+    {
+      sysinfo["FS (external)"] = "Not mounted";
+    }
     sysinfo["Wifi mode"] = (WiFi.getMode() == WIFI_AP ? "AccessPoint" : (WiFi.getMode() == WIFI_STA ? "Station" : "Unkown"));
     if (WiFi.getMode() == WIFI_STA)
     {
@@ -334,7 +357,14 @@ void sendData(sendDataType type)
     }
     doc["mqtt_prefix"] = settings_mqtt_prefix;
 
-    doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    if (fsExternalMounted)
+    {
+      doc["fs_info"] = String(formatFileSize(SD.usedBytes())) + " of " + String(formatFileSize(SD.totalBytes())) + " used (" + String(SD.usedBytes() / (float)SD.totalBytes() * 100.0) + "%)";
+    }
+    else
+    {
+      doc["fs_info"] = "Not mounted";
+    }
     doc["hostname"] = settings_hostname;
     doc["username"] = settings_username;
     if (settings_password.length() > 0)
@@ -350,27 +380,30 @@ void sendData(sendDataType type)
     // Filelist
     JsonArray filesArray = doc.createNestedArray("fs");
 
-    File root = SD.open("/");
-    if (!root)
+    if (fsExternalMounted)
     {
-      logln(F("Failed to open directory"));
-      return;
-    }
-
-    File file = root.openNextFile();
-    while (file)
-    {
-      // Filter System Volume Information
-      if (String(file.name()).indexOf("System Volume Information") == -1)
+      File root = SD.open("/");
+      if (!root)
       {
-        JsonObject fileObj = filesArray.createNestedObject();
-        fileObj["name"] = String(file.name());
-        fileObj["size"] = String(file.size());
+        logln(F("Failed to open directory"));
+        return;
       }
 
-      file = root.openNextFile();
+      File file = root.openNextFile();
+      while (file)
+      {
+        // Filter System Volume Information
+        if (String(file.name()).indexOf("System Volume Information") == -1)
+        {
+          JsonObject fileObj = filesArray.createNestedObject();
+          fileObj["name"] = String(file.name());
+          fileObj["size"] = String(file.size());
+        }
+
+        file = root.openNextFile();
+      }
+      root.close();
     }
-    root.close();
   }
 
   // Serialize the JSON document to a string
@@ -964,12 +997,16 @@ void setup()
     else
     {
       logln(F("Internal filesystem formatted successfully"));
+      logln(F("Restarting..."));
+      sleep(5000);
+      ESP.restart();
     }
   }
   else
   {
     logln(F("Internal filesystem mounted successfully"));
     logf("> %s of %s used (%0.0f%%)\n", formatFileSize(FILESYSTEM.usedBytes()), formatFileSize(FILESYSTEM.totalBytes()), FILESYSTEM.usedBytes() / (float)FILESYSTEM.totalBytes() * 100.0);
+    fsInternalMounted = true;
   }
 
   // Read settings
@@ -989,6 +1026,7 @@ void setup()
   {
     logln(F("SD mounted successfully"));
     logf("> %s of %s used (%0.0f%%)\n", formatFileSize(SD.usedBytes()), formatFileSize(SD.totalBytes()), SD.usedBytes() / (float)SD.totalBytes() * 100.0);
+    fsExternalMounted = true;
   }
 
   // WiFi
@@ -1044,8 +1082,7 @@ void setup()
               else
               {
                 request->send(400, "text/plain", "400: Invalid Request");
-              }
-            });
+              } });
 
   // run handleUpload function when any file is uploaded
   server.on(
@@ -1135,7 +1172,7 @@ void loop()
     sendData(DATA_SYSINFO);
     lastSysInfoUpdate = millis();
   }
-  
+
   vTaskDelay(1);
 }
 
