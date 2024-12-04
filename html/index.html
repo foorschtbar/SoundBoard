@@ -397,6 +397,7 @@
             </p>
             <div id="json_fs" class="dropzone"></div>
             <p>
+            <button class="button" data-cmd="stop" data-value="">Stop playback</button>
             <form method="POST" action="/upload" enctype="multipart/form-data">
                 <input type="file" name="data" id="fileupload" required />
                 <input type="button" class="button" value="Upload"
@@ -425,8 +426,9 @@
         </div>
         <div class="card needlogin hidden">
             <h2>Maintenance</h2>
-            <p><button class="button confirm showPopup" data-cmd="cmd" data-value="reboot">Reboot</button></p>
-            <p><button class="button confirm showPopup" data-cmd="cmd" data-value="reset">Reset Settings</button></p>
+            <p><button class="button confirm showPopup" data-cmd="reboot">Reboot</button></p>
+            <p><button class="button confirm showPopup" data-cmd="resetconfig">Reset Settings</button></p>
+            <p><button class="button confirm showPopup" data-cmd="formatfs">Format internal FS</button></p>
             <p>
             <form method='POST' action='/update' enctype='multipart/form-data'>
                 <input type='file' name='update' id='fwupdate' required>

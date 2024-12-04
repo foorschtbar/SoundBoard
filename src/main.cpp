@@ -567,27 +567,36 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
     // only authenticated clients can send commands
     if (checkWSAuth(clientid))
     {
-      if (doc.containsKey("cmd"))
+      if (doc.containsKey("reboot"))
       {
-        const char *cmd = doc["cmd"].as<const char *>();
-        if (strcmp(cmd, "reboot") == 0)
+        sendPopup("Rebooting...", "loading", 10);
+        shouldReboot = true;
+      }
+      else if (doc.containsKey("formatfs"))
+      {
+        logf("Formating internal filesystem...");
+        if (FILESYSTEM.format())
         {
-          sendPopup("Rebooting...", "loading", 10);
-          shouldReboot = true;
+          logf("done!\n");
+          ESP.restart();
         }
-        else if (strcmp(cmd, "reset") == 0)
+        else
         {
-          logf("Formating internal filesystem...");
-          if (FILESYSTEM.format())
-          {
-            logf("done!\n");
-            ESP.restart();
-          }
-          else
-          {
-            logf("failed!\n");
-            sendPopup("Formating internal filesystem failed!\n", "error");
-          }
+          logf("failed!\n");
+          sendPopup("Formating internal filesystem failed!\n", "error");
+        }
+      }
+      else if (doc.containsKey("resetconfig")) {
+        logf("Resetting configuration...");
+        if (FILESYSTEM.remove("/settings.json"))
+        {
+          logf("done!\n");
+          ESP.restart();
+        }
+        else
+        {
+          logf("failed!\n");
+          sendPopup("Resetting configuration failed!\n", "error");
         }
       }
       else if (doc.containsKey("tts") && doc.containsKey("lang"))
@@ -599,12 +608,29 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         audio.stopSong();
         audio.connecttospeech(text, lang);
       }
+      else if (doc.containsKey("volume"))
+      {
+        currentVolume = doc["volume"].as<int>();
+        sendStatus(String("Volume: " + String(map(currentVolume, 0, 21, 0, 100))) + "%");
+        audio.setVolume(currentVolume);
+      }
+      else if (doc.containsKey("balance"))
+      {
+        currentBalance = doc["balance"].as<int>();
+        sendStatus(String("Balance: ") + String(currentBalance));
+        audio.setBalance(currentBalance * -1);
+      }
       else if (doc.containsKey("play"))
       {
         const char *filename = doc["play"].as<const char *>();
         sendStatus(String("Play ") + String(filename));
         audio.stopSong();
         audio.connecttoFS(SD, filename);
+      }
+      else if (doc.containsKey("stop"))
+      {
+        audio.stopSong();
+        sendStatus("Stop");
       }
       else if (doc.containsKey("delete"))
       {
