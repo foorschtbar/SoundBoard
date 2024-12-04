@@ -18,6 +18,11 @@ A simple PCB with two audio drivers, a SD card reader and a ESP32 microcontrolle
   - Subscripte to `<prefix>/status` to get the status of the device
   - Publish to `<prefix>/cmd` to play a sound
     - `{"play": "filename.mp3", "volume": 50, "balance": 0}` (volume and balance are optional)
+
+## Getting Started
+
+- Default WiFi SSID: `SoundBoard`
+- Default WiFi Password: `12345678x!`
   
 ## Hardware
 
@@ -38,8 +43,11 @@ A simple PCB with two audio drivers, a SD card reader and a ESP32 microcontrolle
 
 ### ToDos
 
-- [ ] Refactor Code in more separat files
+- [ ] Send file list in multiple messages
 - [ ] sync volume and balance fader across all clients
+- [ ] Enable/Disable Playback/Stop button based on the current state
+- [ ] Add addidtional MQTT topics with hostname for status und command
+- [ ] Refactor Code in more separat files
 - [x] If we had valid settings, but in Fallback AP mode, try to connect to the last known wifi periodically
 - [x] Download audiofiles from the webinterface
 - [x] Replace Pay/Delete/Download wit icons?
