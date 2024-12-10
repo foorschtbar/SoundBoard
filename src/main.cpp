@@ -730,15 +730,8 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
 
         writeSettings();
 
-        if (doc.containsKey("reboot"))
-        {
-          sendPopup("Settings saved. Rebooting...", "loading", 10);
-          shouldReboot = true;
-        }
-        else
-        {
-          sendPopup("Settings saved.", "success");
-        }
+        sendPopup("Settings saved. Rebooting...", "loading", 10);
+        shouldReboot = true;
       }
     }
   }

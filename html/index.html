@@ -397,7 +397,7 @@
             </p>
             <div id="json_fs" class="dropzone"></div>
             <p>
-            <button class="button" data-cmd="stop" data-value="">Stop playback</button>
+                <button class="button" data-cmd="stop" data-value="">Stop playback</button>
             <form method="POST" action="/upload" enctype="multipart/form-data">
                 <input type="file" name="data" id="fileupload" required />
                 <input type="button" class="button" value="Upload"
@@ -685,7 +685,7 @@
                                     break;
                                 case 'settingssave':
                                     var form = document.getElementById('settings');
-                                    var data = { settings: {}, reboot: true };
+                                    var data = { settings: {} };
                                     // Loop through all input elements in the form
                                     for (let i = 0; i < form.elements.length; i++) {
                                         const element = form.elements[i];
