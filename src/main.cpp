@@ -89,6 +89,7 @@ typedef enum DATA_TYPE
 {
   DATA_SYSINFO,
   DATA_ALL,
+  DATA_FILES
 } sendDataType;
 
 void showAction()
@@ -269,7 +270,7 @@ void sendPopup(String msg, String icon = "loading", int refresh = 0)
   textAllAuthenticatedClients("{\"popup\":\"" + msg + "\", \"icon\":\"" + icon + "\", \"refresh\":" + String(refresh) + "}");
 }
 
-void sendData(sendDataType type)
+void sendData(sendDataType type, uint32_t offset = 0)
 {
   showAction();
   // Create a JSON document
@@ -376,7 +377,14 @@ void sendData(sendDataType type)
       doc["password"] = "";
     }
     doc["status"] = "Reeeaaaady...";
+    JsonObject moredata = doc.createNestedObject("moredata");
+    moredata["files"] = "0";
+  }
 
+  if (type == DATA_FILES)
+  {
+    uint32_t limit = 10;
+    uint32_t count = 0;
     // Filelist
     JsonArray filesArray = doc.createNestedArray("fs");
 
@@ -392,15 +400,29 @@ void sendData(sendDataType type)
       File file = root.openNextFile();
       while (file)
       {
-        // Filter System Volume Information
         if (String(file.name()).indexOf("System Volume Information") == -1)
         {
-          JsonObject fileObj = filesArray.createNestedObject();
-          fileObj["name"] = String(file.name());
-          fileObj["size"] = String(file.size());
-        }
+          if (count >= offset && count <= offset + limit)
+          {
+            // Filter System Volume Information
 
+            JsonObject fileObj = filesArray.createNestedObject();
+            fileObj["index"] = count;
+            fileObj["name"] = String(file.name());
+            fileObj["size"] = String(file.size());
+          }
+          count++;
+        }
         file = root.openNextFile();
+        if (count >= offset + limit)
+        {
+          if (file)
+          {
+            JsonObject moredata = doc.createNestedObject("moredata");
+            moredata["files"] = count;
+          }
+          break;
+        }
       }
       root.close();
     }
@@ -567,7 +589,12 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
     // only authenticated clients can send commands
     if (checkWSAuth(clientid))
     {
-      if (doc.containsKey("reboot"))
+      if (doc.containsKey("getFiles"))
+      {
+        uint32_t index = doc["getFiles"].as<uint32_t>();
+        sendData(DATA_FILES, index);
+      }
+      else if (doc.containsKey("reboot"))
       {
         sendPopup("Rebooting...", "loading", 10);
         shouldReboot = true;
@@ -586,7 +613,8 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
           sendPopup("Formating internal filesystem failed!\n", "error");
         }
       }
-      else if (doc.containsKey("resetconfig")) {
+      else if (doc.containsKey("resetconfig"))
+      {
         logf("Resetting configuration...");
         if (FILESYSTEM.remove("/settings.json"))
         {

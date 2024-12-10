@@ -395,7 +395,13 @@
             <p>
             <div id="json_fs_info"></div>
             </p>
-            <div id="json_fs" class="dropzone"></div>
+            <div id="json_fs" class="dropzone">
+                <div class="table fs" id="filelist">
+                    <div>
+                        <div>No files</div>
+                    </div>
+                </div>
+            </div>
             <p>
                 <button class="button" data-cmd="stop" data-value="">Stop playback</button>
             <form method="POST" action="/upload" enctype="multipart/form-data">
@@ -428,7 +434,7 @@
             <h2>Maintenance</h2>
             <p><button class="button confirm showPopup" data-cmd="reboot">Reboot</button></p>
             <p><button class="button confirm showPopup" data-cmd="resetconfig">Reset Settings</button></p>
-            <p><button class="button confirm showPopup" data-cmd="formatfs">Format internal FS</button></p>
+            <p><button class="button confirm showPopup" data-cmd="formatfs">Format Internal FS</button></p>
             <p>
             <form method='POST' action='/update' enctype='multipart/form-data'>
                 <input type='file' name='update' id='fwupdate' required>
@@ -525,6 +531,7 @@
         }
         function onOpen(event) {
             console.log('Connection opened');
+            console.log("Client ID: " + event)
             if (!preAuth()) {
                 getData();
             }
@@ -934,6 +941,11 @@
             websocket.send('{"getData": true}');
         }
 
+        function getFiles(offset, anyClient = false) {
+            showPopupMessage();
+            websocket.send(`{"getFiles": ${offset}}`);
+        }
+
         function processResponse(response) {
             var hideloader = false;
             var html = '';
@@ -970,10 +982,15 @@
                         case 'fs':
                             hideloader = true;
 
+                            console.log("FS", response[key]);
+
+                            const filelist = document.getElementById('filelist');
+
+                            html = "";
                             // file list
-                            html = '<div class="table fs">';
                             for (let i = 0; i < response[key].length; i++) {
-                                if (i == 0) {
+                                if (response[key][i].index == 0) {
+                                    filelist.innerHTML = "";
                                     html += '<div>';
                                     html += '<div>Name</div>';
                                     html += '<div>Size</div>';
@@ -990,8 +1007,8 @@
                                 html += '</div>';
                                 html += '</div>';
                             }
-                            html += '</div>';
-                            element.innerHTML = html;
+
+                            filelist.innerHTML += html;
                             break;
 
                         case 'sysinfo':
@@ -1016,6 +1033,14 @@
                             }
                             html += '</div>';
                             element.innerHTML = html;
+                            break;
+                        case "moredata":
+                            for (const type in response[key]) {
+                                if (type === "files") {
+                                    getFiles(response[key][type]);
+                                    hideloader = false;
+                                }
+                            }
                             break;
                         default:
                             if (element) {
