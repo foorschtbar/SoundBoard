@@ -401,6 +401,7 @@
                         <div>No files</div>
                     </div>
                 </div>
+                <div class="table fs" id="filelistTemp" style="display: none"></div>
             </div>
             <p>
                 <button class="button" data-cmd="stop" data-value="">Stop playback</button>
@@ -514,6 +515,7 @@
         const gateway = `ws://${host}/ws`;
         let websocket;
         const noReconnect = false;
+        const requestID = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM loaded');
@@ -544,6 +546,13 @@
         }
         function onMessage(event) {
             const response = JSON.parse(event.data);
+
+            // store current clientId
+            if (response.hasOwnProperty('clientId')) {
+                console.log("Client ID: " + response.clientId)
+                clientId = response.clientId;
+            }
+
             if (processResponse(response)) {
                 hidePopup();
             }
@@ -692,7 +701,7 @@
                                     break;
                                 case 'settingssave':
                                     var form = document.getElementById('settings');
-                                    var data = { settings: {} };
+                                    var data = { settings: {}, requestID: requestID };
                                     // Loop through all input elements in the form
                                     for (let i = 0; i < form.elements.length; i++) {
                                         const element = form.elements[i];
@@ -710,10 +719,10 @@
                                     websocket.send(json);
                                     break;
                                 case 'tts':
-                                    websocket.send(`{"tts": "${document.getElementById("json_tts_text").value}", "lang": "${document.getElementById('json_tts_lang').value}"}`);
+                                    websocket.send(`{"tts": "${document.getElementById("json_tts_text").value}", "lang": "${document.getElementById('json_tts_lang').value}", requestID: "${requestID}"}`);
                                     break;
                                 default:
-                                    websocket.send(`{"${cmd}": "${value}"}`);
+                                    websocket.send(`{"${cmd}": "${value}", requestID: "${requestID}"}`);
                                     break;
                             }
                         }
@@ -938,12 +947,12 @@
 
         function getData() {
             showPopupMessage();
-            websocket.send('{"getData": true}');
+            websocket.send('{"getData": true, "requestID": "' + requestID + '""}');
         }
 
-        function getFiles(offset, anyClient = false) {
+        function getFiles(offset = 0) {
             showPopupMessage();
-            websocket.send(`{"getFiles": ${offset}}`);
+            websocket.send(`{"getFiles": true, "offset": ${offset}, "requestID": "${requestID}"}`);
         }
 
         function processResponse(response) {
@@ -985,12 +994,13 @@
                             console.log("FS", response[key]);
 
                             const filelist = document.getElementById('filelist');
+                            const filelistTemp = document.getElementById('filelistTemp');
 
                             html = "";
                             // file list
                             for (let i = 0; i < response[key].length; i++) {
                                 if (response[key][i].index == 0) {
-                                    filelist.innerHTML = "";
+                                    filelistTemp.innerHTML = "";
                                     html += '<div>';
                                     html += '<div>Name</div>';
                                     html += '<div>Size</div>';
@@ -1008,7 +1018,12 @@
                                 html += '</div>';
                             }
 
-                            filelist.innerHTML += html;
+                            filelistTemp.innerHTML += html;
+
+                            if (response["morefiles"] === undefined) {
+                                filelist.innerHTML = filelistTemp.innerHTML;
+                                filelistTemp.innerHTML = "";
+                            }
                             break;
 
                         case 'sysinfo':
@@ -1034,13 +1049,19 @@
                             html += '</div>';
                             element.innerHTML = html;
                             break;
-                        case "moredata":
-                            for (const type in response[key]) {
-                                if (type === "files") {
-                                    getFiles(response[key][type]);
-                                    hideloader = false;
-                                }
+                        case "morefiles":
+                            console.log("blub:", response);
+                            const response_offset = response[key].offset;
+                            const response_requestID = response.requestID;
+
+                            console.log("response_requestID:", response_requestID)
+
+                            // Check if the response is from our client
+                            if (response_requestID == requestID) {
+
+                                getFiles(response_offset);
                             }
+
                             break;
                         default:
                             if (element) {

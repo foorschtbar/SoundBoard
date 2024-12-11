@@ -38,6 +38,7 @@
 #define MQTT_TOPIC_CMD "cmd"
 #define MQTT_TOPIC_STATUS "status"
 #define SYSINFO_UPDATE_INTERVAL 1000 * 30
+#define FILELIST_CHUNK_SIZE 10
 #define DEFAULT_USERNAME "admin"
 #define DEFAULT_PASSWORD "admin"
 #define DEFAULT_VOLUME 5
@@ -270,11 +271,13 @@ void sendPopup(String msg, String icon = "loading", int refresh = 0)
   textAllAuthenticatedClients("{\"popup\":\"" + msg + "\", \"icon\":\"" + icon + "\", \"refresh\":" + String(refresh) + "}");
 }
 
-void sendData(sendDataType type, uint32_t offset = 0)
+void sendData(sendDataType type, String requestID = "", uint32_t offset = 0)
 {
   showAction();
   // Create a JSON document
   StaticJsonDocument<3000> doc;
+
+  doc["requestID"] = requestID;
 
   if (type == DATA_SYSINFO || type == DATA_ALL)
   {
@@ -377,13 +380,10 @@ void sendData(sendDataType type, uint32_t offset = 0)
       doc["password"] = "";
     }
     doc["status"] = "Reeeaaaady...";
-    JsonObject moredata = doc.createNestedObject("moredata");
-    moredata["files"] = "0";
   }
 
-  if (type == DATA_FILES)
+  if (type == DATA_FILES || type == DATA_ALL)
   {
-    uint32_t limit = 10;
     uint32_t count = 0;
     // Filelist
     JsonArray filesArray = doc.createNestedArray("fs");
@@ -402,7 +402,7 @@ void sendData(sendDataType type, uint32_t offset = 0)
       {
         if (String(file.name()).indexOf("System Volume Information") == -1)
         {
-          if (count >= offset && count <= offset + limit)
+          if (count >= offset && count <= offset + FILELIST_CHUNK_SIZE)
           {
             // Filter System Volume Information
 
@@ -414,12 +414,12 @@ void sendData(sendDataType type, uint32_t offset = 0)
           count++;
         }
         file = root.openNextFile();
-        if (count >= offset + limit)
+        if (count >= offset + FILELIST_CHUNK_SIZE)
         {
           if (file)
           {
-            JsonObject moredata = doc.createNestedObject("moredata");
-            moredata["files"] = count;
+            JsonObject morefiles = doc.createNestedObject("morefiles");
+            morefiles["offset"] = count;
           }
           break;
         }
@@ -543,12 +543,18 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
     data[len] = 0;
+    String requestID;
     logf("handleWebSocketMessage: %s\n", (char *)data);
 
     // get websocket client id
 
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char *)data);
+    if (doc.containsKey("requestID"))
+    {
+      requestID = doc["requestID"].as<String>();
+    }
+
     if (doc.containsKey("login"))
     {
       const char *auth = doc["login"].as<const char *>();
@@ -577,7 +583,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
       if (checkWSAuth(clientid))
       {
         // Send full data if authenticated
-        sendData(DATA_ALL);
+        sendData(DATA_ALL, requestID);
       }
       else
       {
@@ -591,8 +597,9 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
     {
       if (doc.containsKey("getFiles"))
       {
-        uint32_t index = doc["getFiles"].as<uint32_t>();
-        sendData(DATA_FILES, index);
+        uint32_t offset = doc["offset"].as<uint32_t>();
+
+        sendData(DATA_FILES, requestID, offset);
       }
       else if (doc.containsKey("reboot"))
       {
@@ -667,7 +674,7 @@ void handleWebSocketMessage(uint32_t clientid, void *arg, uint8_t *data, size_t 
         if (SD.remove("/" + String(filename)))
         {
           sendStatus("Deleted " + String(filename));
-          sendData(DATA_ALL);
+          sendData(DATA_ALL, requestID);
         }
         else
         {
@@ -983,6 +990,8 @@ void setupWiFiStation()
       }
       delay(100);
     }
+
+    WiFi.setAutoReconnect(true);
 
     logln(F("\nConnected to the WiFi network"));
     logf("> Hostname:    %s\n", WiFi.getHostname());
