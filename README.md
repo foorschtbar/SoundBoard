@@ -18,6 +18,7 @@ A simple PCB with two audio drivers, a SD card reader and a ESP32 microcontrolle
   - Subscripte to `<prefix>/status` to get the status of the device
   - Publish to `<prefix>/cmd` to play a sound
     - `{"play": "filename.mp3", "volume": 50, "balance": 0}` (volume and balance are optional)
+    - `{"tts": "Hello World", "lang": "de"}`
 
 ## Getting Started
 
@@ -42,7 +43,6 @@ A simple PCB with two audio drivers, a SD card reader and a ESP32 microcontrolle
 - Set manual a cookie with `overwrite-host` to the hostname or ip of the device and reload the page.
 
 ### ToDos
-
 
 - [ ] sync volume and balance fader across all clients
 - [ ] Enable/Disable Playback/Stop button based on the current state
